@@ -1,3 +1,4 @@
+%% D3Q19 
 clc; clearvars; close all
 
 %% Parâmetros Gerais
@@ -12,25 +13,23 @@ sigma = 0.1;
 [nx, ny, nz] = deal(150);
 nsteps = 10000; 
 
-% função de distribuição de equilíbrio local?
 f = zeros(nx,ny,nz,19); 
-% função de distribuição de equilíbrio?
-% g = zeros(nx, ny, nz, ?); 
+g = zeros(nx, ny, nz, 15); 
 
 %% Matrizes e Variáveis
 
 [rho, u, v, w, ...
- fi, normx, normy, ...
+ fi, normx, normy, normz, ...
  curvature, indicator, ...
- bool_ind, ffx, ffy, ...
- grad_rho_x, grad_rho_y, ...
+ bool_ind, ffx, ffy, ffz, ...
+ grad_rho_x, grad_rho_y, grad_rho_z, ...
  mod_grad, isfluid] = deal(zeros(nx,ny,nz));
 
 [pxx, pyy, pzz, ...
  pxy, pxz, pyz] = deal(ones(nx,ny,nz));
 
 p = zeros(1,19);
-% p_g = zeros(1, ?);
+p_g = zeros(1, 15);
 
 fneq = zeros(19,1); 
 isfluid(2:nx-1,2:ny-1,2:nz-1) = 1;
@@ -42,9 +41,9 @@ p(1) = 1/3;
 p(2:6) = 1/18;
 p(7:19) = 1/36;
 
-% PESOS PARA O CAMPO DE FASE?
-% p_g = [];
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+p_g(1) = 2/9;
+p_g(2:7) = 1/9;
+p_g(8:15) = 1/72;
 
 opp = [1, 3, 2, 5, 4, 7, 6, 9, 8, 11, 10, 13, 12, 15, 14, 17, 16, 19, 18];
 
@@ -73,9 +72,9 @@ for i = 1:19
     f(:,:,:,i) = p(i) * rho(:,:,:);
 end
 
-% for i = 1:?
-%     g(:,:,:,i) = p_g(i) * fi(:,:,:);
-% end
+for i = 1:15
+    g(:,:,:,i) = p_g(i) * fi(:,:,:);
+end
 
 %% Loop de Simulação
 
@@ -103,7 +102,7 @@ for t = 1:nsteps
                     end
                     % Magnitude do gradiente e indicador
                     [mod_grad(i,j,k), ...
-                     indicator(i,j,k)] = deal(norm(grad_fix,grad_fiy,grad_fiz));
+                     indicator(i,j,k)] = deal(sqrt(grad_fix.^2 + grad_fiy.^2 + grad_fiz.^2));
                     % Normalização dos gradientes
                     normx(i,j,k) = grad_fix ./ (mod_grad(i,j,k) + 10^-9);
                     normy(i,j,k) = grad_fiy ./ (mod_grad(i,j,k) + 10^-9);
@@ -139,21 +138,31 @@ for t = 1:nsteps
         for j = 1:ny
             for k = 1:nz
                 if(isfluid(i,j,k) == 1)
+                    % AJUSTAR PARA 3D
                     % Cálculo das velocidades
-                        % fazer
-                    % Cálculo da densidade
+                        % u(ii,jj)=(f(ii,jj,2)-f(ii,jj,4)+f(ii,jj,6)-f(ii,jj,7)-f(ii,jj,8)+f(ii,jj,9))./rho(ii,jj) + ffx(ii,jj)*0.5./rho(ii,jj) ;
+                        % v(ii,jj)=(f(ii,jj,3)-f(ii,jj,5)+f(ii,jj,6)+f(ii,jj,7)-f(ii,jj,8)-f(ii,jj,9))./rho(ii,jj) + ffy(ii,jj)*0.5./rho(ii,jj) ;   
+                    uu = 0.5 * (u(i,j,k) .^ 2 + v(i,j,k) .^ 2) / cssq;
+                    % Cálculo da densidade 
                     rho(i,j,k) = sum(f(i,j,k,:),4);
                     % Cálculo dos momentos
                     for l = 1:19
                         udotc = (u(i,j,k) * cix(l) + v(i,j,k) * ciy(l) + w(i,j,k) * ciz(l));
-                        % Cálculo de HeF
-                            % fazer
+                        % Cálculo de HeF (inseguro sobre primeira linha)
+                        HeF = (p(l) * (rho(i,j,k) + rho(i,j,k) .* (udotc + 0.5 .* udotc.^2 - uu))) ...
+                            .* ((cix(l) - u(i,j,k)) .* ffx(i,j,k) + ...
+                                (ciy(l) - v(i,j,k)) .* ffy(i,j,k) + ...
+                                (ciz(l) - w(i,j,k)) .* ffz(i,j,k) ...
+                               ) ./ (rho(i,j,k) .* cssq);
                         % Distribuição de equilíbrio
-                            % fazer
+                        feq = p(l) * (rho(i,j,k) + rho(i,j,k) .* (udotc + 0.5 .* udotc.^2 - uu)) - 0.5 .* (HeF);
                         fneq(l) = f(i,j,k,l) - feq;
                     end
+                    % AJUSTAR PARA 3D
                     % Cálculo de momentos
-                        % fazer
+                        % pxx(ii,jj)= fneq(2) + fneq(4) + fneq(6) + fneq(7) + fneq(8) + fneq(9);
+                        % pyy(ii,jj)= fneq(3) + fneq(5) + fneq(6) + fneq(7) + fneq(8) + fneq(9);
+                        % pxy(ii,jj)= fneq(6) - fneq(7) + fneq(8) - fneq(9); 
                 end
             end
         end
@@ -168,27 +177,37 @@ for t = 1:nsteps
                     uu = 0.5 * (u(i,j,k).^2 + v(i,j,k).^2 + w(i,j,k).^2)/cssq;
                     for l = 1:19
                         % Produto escalar da velocidade do fluido e da direção da partícula
-                        udotc = (u(i,j,k) * cix(l) + v(i,j,k) * ciy(l) + w(i,j,k) * ciz(l))/cssq;
+                        udotc = (u(i,j,k) * cix(l) + v(i,j,k) * ciy(l) + w(i,j,k) * ciz(l)) / cssq;
                         % Cálculo da função de distribuição de equilíbrio
-                            % fazer
+                        feq = p(l) * (rho(i,j,k) + rho(i,j,k) .* (udotc + 0.5 .* udotc.^2 - uu));
                         % Cálculo de HeF (forças externas ou tensão superficial)
-                            % fazer
+                        HeF = 0.5 .* (p(l) * (rho(i,j,k) + rho(i,j,k) .* (udotc + 0.5 .* udotc .^2 - uu))) .* ...
+                            ((cix(l) - u(i,j,k)) .* ffx(i,j,k) + ...
+                             (ciy(l) - v(i,j,k)) .* ffy(i,j,k) + ...
+                             (ciz(l) - w(i,j,k)) .* ffz(i,j,k) ...
+                            ) ./ (rho(i,j,k) .* cssq);
+                        % AJUSTAR PARA 3D
                         % Cálculo da diferença em relação à função de equilíbrio
-                            % fazer
+                            % fneq=(ex(kk).*ex(kk)-cssq)*pxx(ii,jj)+(ey(kk).*ey(kk)-cssq)*pyy(ii,jj) ...
+                            %    + 2*ex(kk).*ey(kk).*pxy(ii,jj);
                         % Cálculo da diferença em relação à função de equilíbrio
-                            % fazer
+                        f(i + cix(l), j + ciy(l), k + ciz(l), l) = feq + (1-omega) * (p(l) / (2*cssq^2)) * fneq + HeF;
                     end
-                    % for l = 1:?
-                        % fazer
-                    % end
+                    for l = 1:15
+                        udotc = (u(i,j,k) * cix(l) + v(i,j,k) * ciy(l) + w(i,j,k) * ciz(l)) / cssq;
+                        feq = p_g(l) .* fi(i,j,k) .* (1 + udotc);
+                        Hi = sharp_c .* fi(i,j,k) .* (1 - fi(i,j,k)) .* (cix(l) .* normx(i,j,k) + ciy(l) .* normy(i,j,k) + ciz(l) .* normz(i,j,k)); 
+                        g(i,j,k,l) = feq + p_g(l) .* Hi;
+                    end
                 end
             end
         end
     end
+
     % Realiza a mudança de posição das funções de distribuição para simular movimento
-    % for l = 1:?
-        % FAZER
-    % end
+    for l = 1:15
+        g(:,:,:,l) = circshift(g(:,:,:,l),[cix(l),ciy(l),ciz(l),0]);
+    end
 
     % Condições de contorno
     for i = 1:nx
@@ -201,17 +220,23 @@ for t = 1:nsteps
                             f(i + cix(l), j + ciy(l), k + ciz(l), l) = rho(i,j,k) .* p(l); 
                         end
                     end
-                    % for l = 1:?
-                    % Atualiza a função de distribuição para o segundo componente
-                        % FAZER
-                    % end
+                    for l = 1:15
+                        if(i + cix(l) > 0 && j + ciy(l) > 0 && k + ciz(l) > 0)
+                            % Atualiza a função de distribuição para o segundo componente
+                            g(i + cix(l), j + ciy(l), k + ciz(l), l) = fi(i,j,k) .* p_g(l);
+                        end
+                    end
                 end
             end
         end
     end
 
+    % AJUSTAR PARA 3D
     % Condições de contorno nos limites da malha
-        % FAZER
+        % fi(:,1)=fi(:,2);
+        % fi(:,ny)=fi(:,ny-1);
+        % fi(1,:)=fi(2,:);
+        % fi(nx,:)=fi(nx-1,:);
 
     if(mod(tt,100) == 0)      
         imagesc(fi')

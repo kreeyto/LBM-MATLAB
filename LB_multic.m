@@ -1,4 +1,4 @@
-%% lattice boltzmann multicomponent single distribution
+%% D2Q9 lattice boltzmann multicomponent single distribution
 clc; clearvars; close all
 %% thread-safe LB
 
