@@ -13,7 +13,7 @@ omega = 1/tau;
 sharp_c = 0.15*3;
 sigma = 0.1;
 
-[nx, ny, nz] = deal(15);
+[nx, ny, nz] = deal(50);
 nsteps = 10000; 
 
 f = zeros(nx,ny,nz,19); 
@@ -60,7 +60,7 @@ for i = 2:nx-1
     for j = 2:ny-1
         for k = 2:nz-1
             Ri = sqrt( ...
-                    (i-(nx/2))^2 + ...
+                    (i-(nx/2))^2/4 + ...
                     (j-(ny/2))^2 + ...
                     (k-(nz/2))^2 ...
                 );
@@ -152,10 +152,9 @@ for t = 1:nsteps
             for k = 1:nz
                 if(isfluid(i,j,k) == 1)
 
-                    % CHECAR 
-                    u(i, j, k) = (f(i, j, k, 2) - f(i, j, k, 5) + f(i, j, k, 8) - f(i, j, k, 9) + f(i, j, k, 14) - f(i, j, k, 17)) / rho(i, j, k) + ffx(i, j, k) * 0.5 / rho(i, j, k);
-                    v(i, j, k) = (f(i, j, k, 3) - f(i, j, k, 6) + f(i, j, k, 8) + f(i, j, k, 9) - f(i, j, k, 14) - f(i, j, k, 17)) / rho(i, j, k) + ffy(i, j, k) * 0.5 / rho(i, j, k);
-                    w(i, j, k) = (f(i, j, k, 4) - f(i, j, k, 7) + f(i, j, k, 10) - f(i, j, k, 11) - f(i, j, k, 15) + f(i, j, k, 18)) / rho(i, j, k) + ffz(i, j, k) * 0.5 / rho(i, j, k);
+                    u(i, j, k) = ( (f(i,j,k,2) + f(i,j,k,16) + f(i,j,k,10) + f(i,j,k,8) + f(i,j,k,14)) - (f(i,j,k,3) + f(i,j,k,11) + f(i,j,k,17) + f(i,j,k,15) + f(i,j,k,9)) ) ./ rho(i, j, k) + ffx(i, j, k) * 0.5 ./ rho(i, j, k);
+                    v(i, j, k) = ( (f(i,j,k,7) + f(i,j,k,16) + f(i,j,k,11) + f(i,j,k,18) + f(i,j,k,13)) - (f(i,j,k,6) + f(i,j,k,10) + f(i,j,k,17) + f(i,j,k,12) + f(i,j,k,19)) ) ./ rho(i, j, k) + ffy(i, j, k) * 0.5 ./ rho(i, j, k);
+                    w(i, j, k) = ( (f(i,j,k,4) + f(i,j,k,8) + f(i,j,k,15) + f(i,j,k,18) + f(i,j,k,12)) - (f(i,j,k,5) + f(i,j,k,14) + f(i,j,k,9) + f(i,j,k,13) + f(i,j,k,19)) ) ./ rho(i, j, k) + ffz(i, j, k) * 0.5 ./ rho(i, j, k);
                     
                     uu = 0.5 * (u(i,j,k).^ 2 + v(i,j,k).^ 2 + w(i,j,k).^2) / cssq;
                     rho(i,j,k) = sum(f(i,j,k,:),4);
@@ -170,13 +169,12 @@ for t = 1:nsteps
                         fneq(l) = f(i,j,k,l) - feq;
                     end
 
-                    % CHECAR
-                    pxx(i, j, k) = fneq(2) + fneq(5) + fneq(8) + fneq(9) + fneq(14) + fneq(17);
-                    pyy(i, j, k) = fneq(3) + fneq(6) + fneq(8) + fneq(9) + fneq(14) + fneq(17);
-                    pzz(i, j, k) = fneq(4) + fneq(7) + fneq(10) + fneq(11) + fneq(15) + fneq(18);
-                    pxy(i, j, k) = fneq(8) - fneq(9) + fneq(14) - fneq(17);
-                    pxz(i, j, k) = fneq(10) - fneq(11) + fneq(15) - fneq(18);
-                    pyz(i, j, k) = fneq(12) - fneq(13) + fneq(16) - fneq(19);
+                    % CHECAR    
+                   %{
+                    pxx(i,j)= fneq(2) + fneq(4) + fneq(6) + fneq(7) + fneq(8) + fneq(9);
+                    pyy(i,j)= fneq(3) + fneq(5) + fneq(6) + fneq(7) + fneq(8) + fneq(9);
+                    pxy(i,j)= fneq(6) - fneq(7) + fneq(8) - fneq(9); 
+                   %}
 
                 end
             end
@@ -188,7 +186,7 @@ for t = 1:nsteps
         for j = 1:ny
             for k = 1:nz
                 if(isfluid(i,j,k) == 1)
-                    uu = 0.5 * (u(i,j,k).^2 + v(i,j,k).^2 + w(i,j,k).^2)/cssq;
+                    uu = 0.5 * (u(i,j,k).^2 + v(i,j,k).^2 + w(i,j,k).^2) / cssq;
                     for l = 1:19
                         udotc = (u(i,j,k) * cix(l) + v(i,j,k) * ciy(l) + w(i,j,k) * ciz(l)) / cssq;
                         feq = p(l) * (rho(i,j,k) + rho(i,j,k) .* (udotc + 0.5 .* udotc.^2 - uu));
@@ -198,9 +196,11 @@ for t = 1:nsteps
                              (ciz(l) - w(i,j,k)) .* ffz(i,j,k) ...
                             ) ./ (rho(i,j,k) .* cssq);
 
-                        % CHECAR
-                        fneq = (cix(l)^2 - cssq) * pxx(i, j, k) + (ciy(l)^2 - cssq) * pyy(i, j, k) + (ciz(l)^2 - cssq) * pzz(i, j, k) + ...
-                               2 * cix(l) * ciy(l) * pxy(i, j, k) + 2 * cix(l) * ciz(l) * pxz(i, j, k) + 2 * ciy(l) * ciz(l) * pyz(i, j, k);
+                        fneq = (cix(l) .* cix(l) - cssq) * pxx(i,j,k) + ...
+                               (ciy(l) .* ciy(l) - cssq) * pyy(i,j,k) + ...
+                                2 * cix(l) .* ciy(l) .* pxy(i,j,k) + ...
+                                2 * cix(l) .* ciz(l) .* pxz(i,j,k) + ...
+                                2 * ciy(l) .* ciz(l) .* pyz(i,j,k);
 
                         f(i + cix(l), j + ciy(l), k + ciz(l), l) = feq + (1-omega) * (p(l) / (2*cssq^2)) * fneq + HeF;
                     end
@@ -239,7 +239,6 @@ for t = 1:nsteps
         end
     end
 
-    % CHECAR
     fi(:, :, 1) = fi(:, :, 2);  
     fi(:, :, nz) = fi(:, :, nz-1); 
     fi(1, :, :) = fi(2, :, :); 
@@ -260,7 +259,7 @@ for t = 1:nsteps
         elseif slicebool == 2
             hFig = figure(1); clf;
             x = 1:nx; y = 1:ny; z = 1:nz;
-            surfpatch = patch(isosurface(x, y, z, fi, 0.5));
+            surfpatch = patch(isosurface(x, y, z, fi));
             set(surfpatch, 'FaceColor', 'red', 'EdgeColor', 'none'); 
             xlabel('X'); ylabel('Y'); zlabel('Z');
             axis equal;

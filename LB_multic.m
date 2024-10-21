@@ -150,8 +150,8 @@ for tt=1:nsteps
         for jj=1:ny
             if(isfluid(ii,jj)==1)
                 
-                u(ii,jj)=(f(ii,jj,2)-f(ii,jj,4)+f(ii,jj,6)-f(ii,jj,7)-f(ii,jj,8)+f(ii,jj,9))./rho(ii,jj) + ffx(ii,jj)*0.5./rho(ii,jj) ;
-                v(ii,jj)=(f(ii,jj,3)-f(ii,jj,5)+f(ii,jj,6)+f(ii,jj,7)-f(ii,jj,8)-f(ii,jj,9))./rho(ii,jj) + ffy(ii,jj)*0.5./rho(ii,jj) ;   
+                u(ii,jj)=( (f(ii,jj,2) + f(ii,jj,6) + f(ii,jj,9)) - (f(ii,jj,4) + f(ii,jj,7) + f(ii,jj,8)) )./rho(ii,jj) + ffx(ii,jj)*0.5./rho(ii,jj) ;
+                v(ii,jj)=( (f(ii,jj,3) + f(ii,jj,6) + f(ii,jj,7)) - (f(ii,jj,5) + f(ii,jj,8) + f(ii,jj,9)) )./rho(ii,jj) + ffy(ii,jj)*0.5./rho(ii,jj) ;   
                 uu=0.5*(u(ii,jj).^2+v(ii,jj).^2)/cssq;
                 rho(ii,jj)=sum(f(ii,jj,:),3) ; 
                 for kk=1:9
