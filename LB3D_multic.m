@@ -13,7 +13,7 @@ omega = 1/tau;
 sharp_c = 0.15*3;
 sigma = 0.1;
 
-[nx, ny, nz] = deal(50);
+[nx, ny, nz] = deal(15);
 nsteps = 10000; 
 
 f = zeros(nx,ny,nz,19); 
@@ -60,7 +60,7 @@ for i = 2:nx-1
     for j = 2:ny-1
         for k = 2:nz-1
             Ri = sqrt( ...
-                    (i-(nx/2))^2/4 + ...
+                    (i-(nx/2))^2 + ...
                     (j-(ny/2))^2 + ...
                     (k-(nz/2))^2 ...
                 );
@@ -157,7 +157,7 @@ for t = 1:nsteps
                     v(i, j, k) = (f(i, j, k, 3) - f(i, j, k, 6) + f(i, j, k, 8) + f(i, j, k, 9) - f(i, j, k, 14) - f(i, j, k, 17)) / rho(i, j, k) + ffy(i, j, k) * 0.5 / rho(i, j, k);
                     w(i, j, k) = (f(i, j, k, 4) - f(i, j, k, 7) + f(i, j, k, 10) - f(i, j, k, 11) - f(i, j, k, 15) + f(i, j, k, 18)) / rho(i, j, k) + ffz(i, j, k) * 0.5 / rho(i, j, k);
                     
-                    uu = 0.5 * (u(i,j,k) .^ 2 + v(i,j,k) .^ 2) / cssq;
+                    uu = 0.5 * (u(i,j,k).^ 2 + v(i,j,k).^ 2 + w(i,j,k).^2) / cssq;
                     rho(i,j,k) = sum(f(i,j,k,:),4);
                     for l = 1:19
                         udotc = (u(i,j,k) * cix(l) + v(i,j,k) * ciy(l) + w(i,j,k) * ciz(l));

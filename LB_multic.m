@@ -6,6 +6,7 @@ nlinks=9;
 tau=0.505;
 cssq=1.0/3.0;
 visc_LB=cssq*(tau-0.5);
+
 visc1=visc_LB;
 tau=0.505;
 visc_LB=cssq*(tau-0.5);
