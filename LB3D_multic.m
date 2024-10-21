@@ -3,6 +3,9 @@ clc; clearvars; close all
 
 %% Parâmetros Gerais
 
+video = 0;
+
+slicebool = 1;
 nlinks = 19;
 tau = 0.505;
 cssq = 1/3;
@@ -10,7 +13,7 @@ omega = 1/tau;
 sharp_c = 0.15*3;
 sigma = 0.1;
 
-[nx, ny, nz] = deal(150);
+[nx, ny, nz] = deal(50);
 nsteps = 10000; 
 
 f = zeros(nx,ny,nz,19); 
@@ -76,11 +79,26 @@ for i = 1:15
     g(:,:,:,i) = p_g(i) * fi(:,:,:);
 end
 
+%% Inicialização da Visualização
+
+if video == true
+    videoFilename = 'LBM.mp4'; 
+    vidObj = VideoWriter(videoFilename, 'MPEG-4');
+    vidObj.FrameRate = 10; 
+    open(vidObj);
+end
+
+if slicebool == false
+    hVol = volshow(fi, 'RenderingStyle', 'MaximumIntensityProjection');
+    viewer = hVol.Parent;
+    hFig = viewer.Parent;
+end
+
 %% Loop de Simulação
 
 for t = 1:nsteps
 
-    % Cálculo do campo de fase
+    % Campo de fase
     for i = 1:nx
         for j = 1:ny
             for k = 1:nz
@@ -89,21 +107,18 @@ for t = 1:nsteps
         end
     end
 
-    % Cálculo das normais e das matrizes
+    % Normal e arrays
     for i = 1:nx
         for j = 1:ny
             for k = 1:nz
                 if(isfluid(i,j,k) == 1)
                     for l = 1:19
-                        % Gradientes da função de campo de fase
                         grad_fix = 3 * p(l) .* cix(l) .* ((fi(i+cix(l),j+ciy(l),k+ciz(l))));
                         grad_fiy = 3 * p(l) .* ciy(l) .* ((fi(i+cix(l),j+ciy(l),k+ciz(l))));
                         grad_fiz = 3 * p(l) .* ciz(l) .* ((fi(i+cix(l),j+ciy(l),k+ciz(l))));
                     end
-                    % Magnitude do gradiente e indicador
                     [mod_grad(i,j,k), ...
                      indicator(i,j,k)] = deal(sqrt(grad_fix.^2 + grad_fiy.^2 + grad_fiz.^2));
-                    % Normalização dos gradientes
                     normx(i,j,k) = grad_fix ./ (mod_grad(i,j,k) + 10^-9);
                     normy(i,j,k) = grad_fiy ./ (mod_grad(i,j,k) + 10^-9);
                     normz(i,j,k) = grad_fiz ./ (mod_grad(i,j,k) + 10^-9);
@@ -112,19 +127,17 @@ for t = 1:nsteps
         end
     end
 
-    % Cálculo da curvatura e das forças de tensão superficial
+    % Curvatura
     for i = 1:nx
         for j = 1:ny
             for k = 1:nz
                 if(isfluid(i,j,k) == 1)
-                    % Curvatura
                     curvature(i,j,k) = 0;
                     for l = 1:19
                         curvature(i,j,k) = curvature(i,j,k) - 3 .* p(l) .* (cix(l) .* (normx(i+cix(l),j+ciy(l),k+ciz(l))) + ...
                                                                             ciy(l) .* (normy(i+cix(l),j+ciy(l),k+ciz(l))) + ...
                                                                             ciz(l) .* (normz(i+cix(l),j+ciy(l),k+ciz(l))));
                     end
-                    % Forças de tensão superficial
                     ffx(i,j,k) = sigma .* curvature(i,j,k) .* normx(i,j,k) .* indicator(i,j,k);
                     ffy(i,j,k) = sigma .* curvature(i,j,k) .* normy(i,j,k) .* indicator(i,j,k);
                     ffz(i,j,k) = sigma .* curvature(i,j,k) .* normz(i,j,k) .* indicator(i,j,k);
@@ -133,64 +146,62 @@ for t = 1:nsteps
         end
     end
 
-    % Cálculo dos momentos
+    % Momentos
     for i = 1:nx
         for j = 1:ny
             for k = 1:nz
                 if(isfluid(i,j,k) == 1)
-                    % AJUSTAR PARA 3D
-                    % Cálculo das velocidades
-                        % u(ii,jj)=(f(ii,jj,2)-f(ii,jj,4)+f(ii,jj,6)-f(ii,jj,7)-f(ii,jj,8)+f(ii,jj,9))./rho(ii,jj) + ffx(ii,jj)*0.5./rho(ii,jj) ;
-                        % v(ii,jj)=(f(ii,jj,3)-f(ii,jj,5)+f(ii,jj,6)+f(ii,jj,7)-f(ii,jj,8)-f(ii,jj,9))./rho(ii,jj) + ffy(ii,jj)*0.5./rho(ii,jj) ;   
+
+                    % CHECAR 
+                    u(i, j, k) = (f(i, j, k, 2) - f(i, j, k, 5) + f(i, j, k, 8) - f(i, j, k, 9) + f(i, j, k, 14) - f(i, j, k, 17)) / rho(i, j, k) + ffx(i, j, k) * 0.5 / rho(i, j, k);
+                    v(i, j, k) = (f(i, j, k, 3) - f(i, j, k, 6) + f(i, j, k, 8) + f(i, j, k, 9) - f(i, j, k, 14) - f(i, j, k, 17)) / rho(i, j, k) + ffy(i, j, k) * 0.5 / rho(i, j, k);
+                    w(i, j, k) = (f(i, j, k, 4) - f(i, j, k, 7) + f(i, j, k, 10) - f(i, j, k, 11) - f(i, j, k, 15) + f(i, j, k, 18)) / rho(i, j, k) + ffz(i, j, k) * 0.5 / rho(i, j, k);
+                    
                     uu = 0.5 * (u(i,j,k) .^ 2 + v(i,j,k) .^ 2) / cssq;
-                    % Cálculo da densidade 
                     rho(i,j,k) = sum(f(i,j,k,:),4);
-                    % Cálculo dos momentos
                     for l = 1:19
                         udotc = (u(i,j,k) * cix(l) + v(i,j,k) * ciy(l) + w(i,j,k) * ciz(l));
-                        % Cálculo de HeF (inseguro sobre primeira linha)
                         HeF = (p(l) * (rho(i,j,k) + rho(i,j,k) .* (udotc + 0.5 .* udotc.^2 - uu))) ...
                             .* ((cix(l) - u(i,j,k)) .* ffx(i,j,k) + ...
                                 (ciy(l) - v(i,j,k)) .* ffy(i,j,k) + ...
                                 (ciz(l) - w(i,j,k)) .* ffz(i,j,k) ...
                                ) ./ (rho(i,j,k) .* cssq);
-                        % Distribuição de equilíbrio
                         feq = p(l) * (rho(i,j,k) + rho(i,j,k) .* (udotc + 0.5 .* udotc.^2 - uu)) - 0.5 .* (HeF);
                         fneq(l) = f(i,j,k,l) - feq;
                     end
-                    % AJUSTAR PARA 3D
-                    % Cálculo de momentos
-                        % pxx(ii,jj)= fneq(2) + fneq(4) + fneq(6) + fneq(7) + fneq(8) + fneq(9);
-                        % pyy(ii,jj)= fneq(3) + fneq(5) + fneq(6) + fneq(7) + fneq(8) + fneq(9);
-                        % pxy(ii,jj)= fneq(6) - fneq(7) + fneq(8) - fneq(9); 
+
+                    % CHECAR
+                    pxx(i, j, k) = fneq(2) + fneq(5) + fneq(8) + fneq(9) + fneq(14) + fneq(17);
+                    pyy(i, j, k) = fneq(3) + fneq(6) + fneq(8) + fneq(9) + fneq(14) + fneq(17);
+                    pzz(i, j, k) = fneq(4) + fneq(7) + fneq(10) + fneq(11) + fneq(15) + fneq(18);
+                    pxy(i, j, k) = fneq(8) - fneq(9) + fneq(14) - fneq(17);
+                    pxz(i, j, k) = fneq(10) - fneq(11) + fneq(15) - fneq(18);
+                    pyz(i, j, k) = fneq(12) - fneq(13) + fneq(16) - fneq(19);
+
                 end
             end
         end
     end
 
-    % Cálculo da colisão
+    % Colisão
     for i = 1:nx
         for j = 1:ny
             for k = 1:nz
                 if(isfluid(i,j,k) == 1)
-                    % Cálculo da energia cinética média
                     uu = 0.5 * (u(i,j,k).^2 + v(i,j,k).^2 + w(i,j,k).^2)/cssq;
                     for l = 1:19
-                        % Produto escalar da velocidade do fluido e da direção da partícula
                         udotc = (u(i,j,k) * cix(l) + v(i,j,k) * ciy(l) + w(i,j,k) * ciz(l)) / cssq;
-                        % Cálculo da função de distribuição de equilíbrio
                         feq = p(l) * (rho(i,j,k) + rho(i,j,k) .* (udotc + 0.5 .* udotc.^2 - uu));
-                        % Cálculo de HeF (forças externas ou tensão superficial)
                         HeF = 0.5 .* (p(l) * (rho(i,j,k) + rho(i,j,k) .* (udotc + 0.5 .* udotc .^2 - uu))) .* ...
                             ((cix(l) - u(i,j,k)) .* ffx(i,j,k) + ...
                              (ciy(l) - v(i,j,k)) .* ffy(i,j,k) + ...
                              (ciz(l) - w(i,j,k)) .* ffz(i,j,k) ...
                             ) ./ (rho(i,j,k) .* cssq);
-                        % AJUSTAR PARA 3D
-                        % Cálculo da diferença em relação à função de equilíbrio
-                            % fneq=(ex(kk).*ex(kk)-cssq)*pxx(ii,jj)+(ey(kk).*ey(kk)-cssq)*pyy(ii,jj) ...
-                            %    + 2*ex(kk).*ey(kk).*pxy(ii,jj);
-                        % Cálculo da diferença em relação à função de equilíbrio
+
+                        % CHECAR
+                        fneq = (cix(l)^2 - cssq) * pxx(i, j, k) + (ciy(l)^2 - cssq) * pyy(i, j, k) + (ciz(l)^2 - cssq) * pzz(i, j, k) + ...
+                               2 * cix(l) * ciy(l) * pxy(i, j, k) + 2 * cix(l) * ciz(l) * pxz(i, j, k) + 2 * ciy(l) * ciz(l) * pyz(i, j, k);
+
                         f(i + cix(l), j + ciy(l), k + ciz(l), l) = feq + (1-omega) * (p(l) / (2*cssq^2)) * fneq + HeF;
                     end
                     for l = 1:15
@@ -204,7 +215,6 @@ for t = 1:nsteps
         end
     end
 
-    % Realiza a mudança de posição das funções de distribuição para simular movimento
     for l = 1:15
         g(:,:,:,l) = circshift(g(:,:,:,l),[cix(l),ciy(l),ciz(l),0]);
     end
@@ -216,13 +226,11 @@ for t = 1:nsteps
                 if(isfluid(i,j,k) == 1)
                     for l = 1:19
                         if(i + cix(l) > 0 && j + ciy(l) > 0 && k + ciz(l) > 0)
-                            % Atualiza a função de distribuição
                             f(i + cix(l), j + ciy(l), k + ciz(l), l) = rho(i,j,k) .* p(l); 
                         end
                     end
                     for l = 1:15
                         if(i + cix(l) > 0 && j + ciy(l) > 0 && k + ciz(l) > 0)
-                            % Atualiza a função de distribuição para o segundo componente
                             g(i + cix(l), j + ciy(l), k + ciz(l), l) = fi(i,j,k) .* p_g(l);
                         end
                     end
@@ -231,22 +239,45 @@ for t = 1:nsteps
         end
     end
 
-    % AJUSTAR PARA 3D
-    % Condições de contorno nos limites da malha
-        % fi(:,1)=fi(:,2);
-        % fi(:,ny)=fi(:,ny-1);
-        % fi(1,:)=fi(2,:);
-        % fi(nx,:)=fi(nx-1,:);
+    % CHECAR
+    fi(:, :, 1) = fi(:, :, 2);  
+    fi(:, :, nz) = fi(:, :, nz-1); 
+    fi(1, :, :) = fi(2, :, :); 
+    fi(nx, :, :) = fi(nx-1, :, :); 
+    fi(:, 1, :) = fi(:, 2, :); 
+    fi(:, ny, :) = fi(:, ny-1, :); 
 
-    if(mod(tt,100) == 0)      
-        imagesc(fi')
-        axis xy
-        axis equal
-        colorbar
-        drawnow;
+    if(mod(t,1) == 0)      
+        if slicebool == 1
+            hFig = figure(1); clf;
+            x = 1:nx; y = 1:ny; z = 1:nz;
+            h = slice(x, y, z, fi, [], ny/2, []); 
+            set(h, 'EdgeColor', 'none'); 
+            shading interp; colorbar; 
+            xlabel('X'); ylabel('Y'); zlabel('Z'); 
+            title(['Visualização 3D do campo de fase no tempo t = ', num2str(t)]);
+            view(3); drawnow; 
+        elseif slicebool == 2
+            hFig = figure(1); clf;
+            x = 1:nx; y = 1:ny; z = 1:nz;
+            surfpatch = patch(isosurface(x, y, z, fi, 0.5));
+            set(surfpatch, 'FaceColor', 'red', 'EdgeColor', 'none'); 
+            xlabel('X'); ylabel('Y'); zlabel('Z');
+            axis equal;
+            camlight; lighting phong; 
+            title(['Isosurface do campo de fase no tempo t = ', num2str(t)]);
+            view(3); drawnow;
+        else
+            hVol.Data = fi;
+            drawnow;
+        end
+        if video == true
+            frame = getframe(hFig); 
+            writeVideo(vidObj, frame);
+        end
     end
 
-    disp(tt)
+    disp(t)
 
 end
 
