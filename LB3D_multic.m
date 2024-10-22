@@ -3,7 +3,7 @@ clc; clearvars; close all
 
 %% Parâmetros Gerais
 
-video = 0;
+video = 1;
 
 slicebool = 1;
 nlinks = 19;
@@ -13,8 +13,8 @@ omega = 1/tau;
 sharp_c = 0.15*3;
 sigma = 0.1;
 
-[nx, ny, nz] = deal(15);
-nsteps = 10000; 
+[nx, ny, nz] = deal(50);
+nsteps = 20000; 
 
 f = zeros(nx,ny,nz,19); 
 g = zeros(nx,ny,nz,15); 
@@ -60,11 +60,11 @@ for i = 2:nx-1
     for j = 2:ny-1
         for k = 2:nz-1
             Ri = sqrt( ...
-                    (i-(nx/2))^2/2.^2 + ...
+                    (i-(nx/2))^2 + ...
                     (j-(ny/2))^2 + ...
                     (k-(nz/2))^2 ...
                 );
-            fi(i,j,k) = 1/2 + 1/2 * tanh(2*(20-Ri)/3);
+            fi(i,j,k) = 0.5 + 0.5 * tanh(2*(20-Ri)/3);
         end
     end
 end
@@ -84,7 +84,7 @@ end
 if video == true
     videoFilename = 'LBM.mp4'; 
     vidObj = VideoWriter(videoFilename, 'MPEG-4');
-    vidObj.FrameRate = 30; 
+    vidObj.FrameRate = 60; 
     open(vidObj);
 end
 
@@ -112,16 +112,19 @@ for t = 1:nsteps
         for j = 1:ny
             for k = 1:nz
                 if(isfluid(i,j,k) == 1)
+                    grad_fix = 0; 
+                    grad_fiy = 0; 
+                    grad_fiz = 0; 
                     for l = 1:19
-                        grad_fix = 3 * p(l) .* cix(l) .* ((fi(i+cix(l),j+ciy(l),k+ciz(l))));
-                        grad_fiy = 3 * p(l) .* ciy(l) .* ((fi(i+cix(l),j+ciy(l),k+ciz(l))));
-                        grad_fiz = 3 * p(l) .* ciz(l) .* ((fi(i+cix(l),j+ciy(l),k+ciz(l))));
+                        grad_fix = grad_fix + 3 * p(l) .* cix(l) .* ((fi(i+cix(l),j+ciy(l),k+ciz(l))));
+                        grad_fiy = grad_fiy + 3 * p(l) .* ciy(l) .* ((fi(i+cix(l),j+ciy(l),k+ciz(l))));
+                        grad_fiz = grad_fiz + 3 * p(l) .* ciz(l) .* ((fi(i+cix(l),j+ciy(l),k+ciz(l))));
                     end
-                    [mod_grad(i,j,k), ...
-                     indicator(i,j,k)] = deal(sqrt(grad_fix.^2 + grad_fiy.^2 + grad_fiz.^2));
+                    mod_grad(i,j,k) = sqrt(grad_fix.^2 + grad_fiy.^2 + grad_fiz.^2);
                     normx(i,j,k) = grad_fix ./ (mod_grad(i,j,k) + 10^-9);
                     normy(i,j,k) = grad_fiy ./ (mod_grad(i,j,k) + 10^-9);
                     normz(i,j,k) = grad_fiz ./ (mod_grad(i,j,k) + 10^-9);
+                    indicator(i,j,k) = sqrt(grad_fix.^2 + grad_fiy.^2 + grad_fiz.^2);
                 end
             end
         end
@@ -165,7 +168,7 @@ for t = 1:nsteps
                     uu = 0.5 * (u(i,j,k).^ 2 + v(i,j,k).^ 2 + w(i,j,k).^2) / cssq;
                     rho(i,j,k) = sum(f(i,j,k,:),4);
                     for l = 1:19
-                        udotc = (u(i,j,k) * cix(l) + v(i,j,k) * ciy(l) + w(i,j,k) * ciz(l));
+                        udotc = (u(i,j,k) * cix(l) + v(i,j,k) * ciy(l) + w(i,j,k) * ciz(l)) / cssq;
                         HeF = (p(l) * (rho(i,j,k) + rho(i,j,k) .* (udotc + 0.5 .* udotc.^2 - uu))) ...
                             .* ((cix(l) - u(i,j,k)) .* ffx(i,j,k) + ...
                                 (ciy(l) - v(i,j,k)) .* ffy(i,j,k) + ...
@@ -221,7 +224,7 @@ for t = 1:nsteps
     end
 
     for l = 1:15
-        g(:,:,:,l) = circshift(g(:,:,:,l),[cix(l),ciy(l),ciz(l),0]);
+        g(:,:,:,l) = circshift(g(:,:,:,l),[cix(l),ciy(l),ciz(l)]);
     end
 
     % Condições de contorno
