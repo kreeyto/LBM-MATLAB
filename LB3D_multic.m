@@ -5,7 +5,7 @@ clc; clearvars; close all
 
 video = 0;
 
-slicebool = 2;
+slicebool = 1;
 nlinks = 19;
 tau = 0.505;
 cssq = 1/3;
@@ -88,12 +88,6 @@ if video == true
     open(vidObj);
 end
 
-if slicebool == false
-    hVol = volshow(fi, 'RenderingStyle', 'MaximumIntensityProjection');
-    viewer = hVol.Parent;
-    hFig = viewer.Parent;
-end
-
 %% Loop de Simulação
 
 for t = 1:nsteps
@@ -159,15 +153,17 @@ for t = 1:nsteps
             for k = 1:nz
                 if isfluid(i,j,k) == 1
                     
-                    % LBM
+                    % CONFIRMADO
                     u(i,j,k) = ( (f(i,j,k,2) + f(i,j,k,16) + f(i,j,k,10) + f(i,j,k,8) + f(i,j,k,14)) - (f(i,j,k,3) + f(i,j,k,11) + f(i,j,k,17) + f(i,j,k,15) + f(i,j,k,9)) ) ./ rho(i, j, k) + ffx(i, j, k) * 0.5 ./ rho(i, j, k);
                     v(i,j,k) = ( (f(i,j,k,4) + f(i,j,k,8) + f(i,j,k,15) + f(i,j,k,18) + f(i,j,k,12)) - (f(i,j,k,5) + f(i,j,k,14) + f(i,j,k,9) + f(i,j,k,13) + f(i,j,k,19)) ) ./ rho(i, j, k) + ffy(i, j, k) * 0.5 ./ rho(i, j, k);
                     w(i,j,k) = ( (f(i,j,k,7) + f(i,j,k,16) + f(i,j,k,11) + f(i,j,k,18) + f(i,j,k,13)) - (f(i,j,k,6) + f(i,j,k,10) + f(i,j,k,17) + f(i,j,k,12) + f(i,j,k,19)) ) ./ rho(i, j, k) + ffz(i, j, k) * 0.5 ./ rho(i, j, k);
 
-                    % SUKOP
-                    % u(i, j, k) = ( (f(i,j,k,2) + f(i,j,k,16) + f(i,j,k,10) + f(i,j,k,8) + f(i,j,k,14)) - (f(i,j,k,3) + f(i,j,k,11) + f(i,j,k,17) + f(i,j,k,15) + f(i,j,k,9)) ) ./ rho(i, j, k) + ffx(i, j, k) * 0.5 ./ rho(i, j, k);
-                    % v(i, j, k) = ( (f(i,j,k,7) + f(i,j,k,16) + f(i,j,k,11) + f(i,j,k,18) + f(i,j,k,13)) - (f(i,j,k,6) + f(i,j,k,10) + f(i,j,k,17) + f(i,j,k,12) + f(i,j,k,19)) ) ./ rho(i, j, k) + ffy(i, j, k) * 0.5 ./ rho(i, j, k);
-                    % w(i, j, k) = ( (f(i,j,k,4) + f(i,j,k,8) + f(i,j,k,15) + f(i,j,k,18) + f(i,j,k,12)) - (f(i,j,k,5) + f(i,j,k,14) + f(i,j,k,9) + f(i,j,k,13) + f(i,j,k,19)) ) ./ rho(i, j, k) + ffz(i, j, k) * 0.5 ./ rho(i, j, k);
+                    %{
+                    SUKOP:
+                        u(i, j, k) = ( (f(i,j,k,2) + f(i,j,k,16) + f(i,j,k,10) + f(i,j,k,8) + f(i,j,k,14)) - (f(i,j,k,3) + f(i,j,k,11) + f(i,j,k,17) + f(i,j,k,15) + f(i,j,k,9)) ) ./ rho(i, j, k) + ffx(i, j, k) * 0.5 ./ rho(i, j, k);
+                        v(i, j, k) = ( (f(i,j,k,7) + f(i,j,k,16) + f(i,j,k,11) + f(i,j,k,18) + f(i,j,k,13)) - (f(i,j,k,6) + f(i,j,k,10) + f(i,j,k,17) + f(i,j,k,12) + f(i,j,k,19)) ) ./ rho(i, j, k) + ffy(i, j, k) * 0.5 ./ rho(i, j, k);
+                        w(i, j, k) = ( (f(i,j,k,4) + f(i,j,k,8) + f(i,j,k,15) + f(i,j,k,18) + f(i,j,k,12)) - (f(i,j,k,5) + f(i,j,k,14) + f(i,j,k,9) + f(i,j,k,13) + f(i,j,k,19)) ) ./ rho(i, j, k) + ffz(i, j, k) * 0.5 ./ rho(i, j, k);
+                    %} 
                     
                     uu = 0.5 * (u(i,j,k).^2 + v(i,j,k).^2 + w(i,j,k).^2) / cssq;
                     rho(i,j,k) = sum(f(i,j,k,:),4);
@@ -182,7 +178,7 @@ for t = 1:nsteps
                         fneq(l) = f(i,j,k,l) - feq;
                     end
 
-                    % CHECAR
+                    % CONFIRMADO
                     pxx(i, j, k) = fneq(2) + fneq(3) + fneq(8) + fneq(9) + fneq(10) + fneq(11) + fneq(14) + fneq(15) + fneq(16) + fneq(17);
                     pyy(i, j, k) = fneq(4) + fneq(5) + fneq(8) + fneq(9) + fneq(12) + fneq(13) + fneq(14) + fneq(15) + fneq(18) + fneq(19);
                     pzz(i, j, k) = fneq(6) + fneq(7) + fneq(10) + fneq(11) + fneq(12) + fneq(13) + fneq(16) + fneq(17) + fneq(18) + fneq(19);
@@ -202,7 +198,10 @@ for t = 1:nsteps
                     uu = 0.5 * (u(i,j,k).^2 + v(i,j,k).^2 + w(i,j,k).^2) / cssq;
                     for l = 1:19
                         udotc = (u(i,j,k) * ex(l) + v(i,j,k) * ey(l) + w(i,j,k) * ez(l)) / cssq;
-       %CHECAR          feq = p(l) * (rho(i,j,k) + rho(i,j,k) .* (udotc + 0.5 .* udotc.^2 - uu));
+
+                        % CHECAR          
+                        feq = p(l) * (rho(i,j,k) + rho(i,j,k) .* (udotc + 0.5 .* udotc.^2 - uu));
+
                         HeF = 0.5 * (p(l) * (rho(i,j,k) + rho(i,j,k) .* (udotc + 0.5 .* udotc .^2 - uu))) .* ...
                             ((ex(l) - u(i,j,k)) .* ffx(i,j,k) + ...
                              (ey(l) - v(i,j,k)) .* ffy(i,j,k) + ...
@@ -267,7 +266,7 @@ for t = 1:nsteps
             xlabel('X'); ylabel('Y'); zlabel('Z'); 
             title(['t = ', num2str(t)]);
             view(3); drawnow; 
-        elseif slicebool == 2
+        else 
             hFig = figure(1); clf;
             x = 1:nx; y = 1:ny; z = 1:nz;
             surfpatch = patch(isosurface(x, y, z, fi));
@@ -277,9 +276,6 @@ for t = 1:nsteps
             camlight; lighting phong; 
             title(['t = ', num2str(t)]);
             view(3); drawnow;
-        else
-            hVol.Data = fi;
-            drawnow;
         end
         if video == true
             frame = getframe(hFig); 
