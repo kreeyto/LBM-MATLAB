@@ -5,7 +5,7 @@ clc; clearvars; close all
 
 video = 0;
 
-slicebool = 1;
+slicebool = 2;
 nlinks = 19;
 tau = 0.505;
 cssq = 1/3;
