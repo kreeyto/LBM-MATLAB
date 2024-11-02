@@ -3,8 +3,6 @@ clc; clearvars; close all
 
 %% Parâmetros Gerais
 
-video = 0;
-
 slicebool = 2;
 nlinks = 19;
 tau = 0.505;
@@ -77,15 +75,6 @@ end
 
 for i = 1:gpoints
     g(:,:,:,i) = p_g(i) * fi(:,:,:);
-end
-
-%% Inicialização da Visualização
-
-if video == true
-    videoFilename = 'LBM.mp4'; 
-    vidObj = VideoWriter(videoFilename, 'MPEG-4');
-    vidObj.FrameRate = 60; 
-    open(vidObj);
 end
 
 %% Loop de Simulação
@@ -277,14 +266,11 @@ for t = 1:nsteps
             title(['t = ', num2str(t)]);
             view(3); drawnow;
         end
-        if video == true
-            frame = getframe(hFig); 
-            writeVideo(vidObj, frame);
-        end
     end
 
     disp(t)
 
 end
+
 
 
