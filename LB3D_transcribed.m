@@ -11,8 +11,8 @@ omega = 1/tau;
 sharp_c = 0.15*3;
 sigma = 0.1;
 
-[nx, ny, nz] = deal(15);
-nsteps = 10000; 
+[nx, ny, nz] = deal(50);
+nsteps = 20000; 
 
 gpoints = 15;
 f = zeros(nx,ny,nz,19); 
@@ -58,7 +58,7 @@ for i = 2:nx-1
     for j = 2:ny-1
         for k = 2:nz-1
             Ri = sqrt( ...
-                    (i-(nx/2))^2/2.^2 + ...
+                    (i-(nx/2))^2 + ...
                     (j-(ny/2))^2 + ...
                     (k-(nz/2))^2 ...
                 );
@@ -268,9 +268,7 @@ for t = 1:nsteps
         end
     end
 
-    disp(t)
-
+    disp(['Passo de tempo: ', num2str(t)]);
 end
-
 
 
