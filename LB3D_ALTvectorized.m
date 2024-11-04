@@ -46,6 +46,8 @@ p_g(1) = 2/9;
 p_g(2:7) = 1/9;
 p_g(8:15) = 1/72;
 
+opp = [1, 3, 2, 5, 4, 7, 6, 9, 8, 11, 10, 13, 12, 15, 14, 17, 16, 19, 18];
+
 ex = [0, 1, -1, 0, 0, 0, 0, 1, -1, 1, -1, 0, 0, 1, -1, 1, -1, 0, 0];
 ey = [0, 0, 0, 1, -1, 0, 0, 1, -1, 0, 0, 1, -1, -1, 1, 0, 0, 1, -1];
 ez = [0, 0, 0, 0, 0, 1, -1, 0, 0, 1, -1, 1, -1, 0, 0, -1, 1, -1, 1];
@@ -109,56 +111,88 @@ for t = 1:nsteps
     rho = sum(f, 4);
     [u, v, w] = deal(zeros(nx,ny,nz));
     for l = 1:19
-        % checar veracidade
+
+        % CHECAR VERACIDADE !!!
         u = u + f(:,:,:,l) * ex(l);
         v = v + f(:,:,:,l) * ey(l);
         w = w + f(:,:,:,l) * ez(l);
+
     end
     u = u ./ rho + ffx * 0.5 ./ rho;
     v = v ./ rho + ffy * 0.5 ./ rho;
     w = w ./ rho + ffz * 0.5 ./ rho;
      
     uu = 0.5 * (u.^2 + v.^2 + w.^2) / cssq;
-    [pxx, pyy, pzz, pxy, pxz, pyz] = deal(zeros(nx,ny,nz));
+    % [pxx, pyy, pzz, pxy, pxz, pyz] = deal(zeros(nx,ny,nz));
     for l = 1:19
         udotc = (u * ex(l) + v * ey(l) + w * ez(l)) / cssq;
         feq = p(l) * (rho + rho .* (udotc + 0.5 .* udotc.^2 - uu));
         fneq = f(:,:,:,l) - feq;
-        % checar veracidade
+        
+        % DESPREZADO
+        %{
         pxx = pxx + ex(l)^2 * fneq;
         pyy = pyy + ey(l)^2 * fneq;
         pzz = pzz + ez(l)^2 * fneq;
         pxy = pxy + ex(l) * ey(l) * fneq;
         pxz = pxz + ex(l) * ez(l) * fneq;
         pyz = pyz + ey(l) * ez(l) * fneq;
+        %}
+
     end
 
+    pxx = fneq(2) + fneq(3) + fneq(8) + fneq(9) + fneq(10) + fneq(11) + fneq(14) + fneq(15) + fneq(16) + fneq(17);
+    pyy = fneq(4) + fneq(5) + fneq(8) + fneq(9) + fneq(12) + fneq(13) + fneq(14) + fneq(15) + fneq(18) + fneq(19);
+    pzz = fneq(6) + fneq(7) + fneq(10) + fneq(11) + fneq(12) + fneq(13) + fneq(16) + fneq(17) + fneq(18) + fneq(19);
+    pxy = fneq(8) + fneq(9) - fneq(14) - fneq(15);
+    pxz = fneq(10) + fneq(11) - fneq(16) - fneq(17);
+    pyz = fneq(12) + fneq(13) - fneq(18) - fneq(19);
+
     % Colisão
+    uu = 0.5 * (u.^2 + v.^2 + w.^2) / cssq;
     for l = 1:19
         udotc = (u * ex(l) + v * ey(l) + w * ez(l)) / cssq;
         feq = p(l) * (rho + rho .* (udotc + 0.5 .* udotc.^2 - uu));
-        % checar veracidade
-        GuoF = (1 - 0.5 * omega) * p(l) .* ((ex(l) - u) .* ffx + (ey(l) - v) .* ffy + (ez(l) - w) .* ffz) / cssq;
-        f(:,:,:,l) = f(:,:,:,l) - omega * (f(:,:,:,l) - feq) + GuoF;
+
+        % TERMO DE FORÇA DE GUO
+        GuoF = (1 - 0.5 * omega) * p(l) .* ( ( (ex(l)-u).*ffx + (ey(l)-v).*ffy + (ez(l)-w).*ffz )/cssq + ( ((ex(l)-u).*ex(l)).*ffx + ((ey(l)-v).*ey(l)).*ffy + ((ez(l)-w).*ez(l)).*ffz )/cssq^2 ); 
+
+        fneq = (ex(l) .* ex(l) - cssq) * pxx + ...
+               (ey(l) .* ey(l) - cssq) * pyy + ...
+               (ez(l) .* ez(l) - cssq) * pzz + ...
+                2 * ex(l) .* ey(l) .* pxy + ...
+                2 * ex(l) .* ez(l) .* pxz + ...
+                2 * ey(l) .* ez(l) .* pyz;
+
+        % EQUAÇÃO DE LATTICE BOLTZMANN COM TERMO DE FORÇA GUO
+        % f(:,:,:,l) = f(:,:,:,l) - omega * (f(:,:,:,l) - feq) + GuoF;
+
+        % Streaming implícito
+        fhandle = feq + (1-omega) * (p(l) / (2*cssq^2)) * fneq + GuoF;
+        f(:,:,:,l) = circshift(fhandle,[-ex(l),-ey(l),-ez(l)]);
+
     end
     for l = 1:gpoints
         udotc = (u * ex(l) + v * ey(l) + w * ez(l)) / cssq;
         feq = p_g(l) .* fi .* (1 + udotc);
         Hi = sharp_c .* fi .* (1 - fi) .* (ex(l) * normx + ey(l) * normy + ez(l) * normz);
-        % checar veracidade
-        g(:,:,:,l) = (1 - omega) * (g(:,:,:,l) - feq) + feq + p_g(l) .* Hi;
+        
+        % sla q porra e essa
+        % g(:,:,:,l) = feq + p_g(l) .* Hi + (1 - omega) * (g(:,:,:,l) - feq);
+
+        g(:,:,:,l) = feq + p_g(l) .* Hi;
+
     end
 
     % Streaming
-    for l = 1:19
-        f(:,:,:,l) = circshift(f(:,:,:,l),[ex(l),ey(l),ez(l)]);
-    end
+    % for l = 1:19
+    %     f(:,:,:,l) = circshift(f(:,:,:,l),[ex(l),ey(l),ez(l)]);
+    % end
     for l = 1:gpoints
         g(:,:,:,l) = circshift(g(:,:,:,l),[ex(l),ey(l),ez(l)]);
     end
 
     % Condições de contorno periódicas
-    % checar veracidade
     f = apd(f);
     g = apd(g);
 

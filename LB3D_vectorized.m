@@ -126,14 +126,14 @@ for t = 1:nsteps
                    ) ./ (rho .* cssq);
         feq = p(l) * (rho + rho .* (udotc + 0.5 .* udotc.^2 - uu)) - 0.5 .* HeF;
         fneq = f(:,:,:,l) - feq;        
-    end
 
-    pxx = sum(fneq([2, 3, 8, 9, 10, 11, 14, 15, 16, 17]));
-    pyy = sum(fneq([4, 5, 8, 9, 12, 13, 14, 15, 18, 19]));
-    pzz = sum(fneq([6, 7, 10, 11, 12, 13, 16, 17, 18, 19]));
-    pxy = sum(fneq([8, 9])) - sum(fneq([14, 15]));
-    pxz = sum(fneq([10, 11])) - sum(fneq([16, 17]));
-    pyz = sum(fneq([12, 13])) - sum(fneq([18, 19]));
+        pxx = sum(fneq([2, 3, 8, 9, 10, 11, 14, 15, 16, 17]));
+        pyy = sum(fneq([4, 5, 8, 9, 12, 13, 14, 15, 18, 19]));
+        pzz = sum(fneq([6, 7, 10, 11, 12, 13, 16, 17, 18, 19]));
+        pxy = sum(fneq([8, 9])) - sum(fneq([14, 15]));
+        pxz = sum(fneq([10, 11])) - sum(fneq([16, 17]));
+        pyz = sum(fneq([12, 13])) - sum(fneq([18, 19]));
+    end
 
     % Colisão
     for l = 1:19
@@ -161,19 +161,12 @@ for t = 1:nsteps
     end    
 
     % Streaming 
+    for l = 1:19
+        f(:,:,:,l) = circshift(f(:,:,:,l),[ex(l),ey(l),ez(l),0]);
+    end
     for l = 1:gpoints
         g(:,:,:,l) = circshift(g(:,:,:,l),[ex(l),ey(l),ez(l),0]);
     end
-
-    % Condições de contorno
-    %{
-    for l = 1:19
-        f(:,:,:,l) = circshift(rho .* p(l),[ex(l),ey(l),ez(l)]);
-    end
-    for l = 1:gpoints
-        g(:,:,:,l) = circshift(fi .* p_g(l),[ex(l),ey(l),ez(l)]);
-    end
-    %}
 
     for i = 1:nx
         for j = 1:ny
