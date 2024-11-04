@@ -216,7 +216,7 @@ for t = 1:nsteps
     end
 
     for l = 1:gpoints
-        g(:,:,:,l) = circshift(g(:,:,:,l),[ex(l),ey(l),ez(l),0]);
+        g(:,:,:,l) = circshift(g(:,:,:,l),[ex(l),ey(l),ez(l)]);
     end
 
     % Condições de contorno
