@@ -143,9 +143,13 @@ for t = 1:nsteps
                 if isfluid(i,j,k) == 1
                     
                     % CONFIRMADO
-                    u(i,j,k) = ( (f(i,j,k,2) + f(i,j,k,16) + f(i,j,k,10) + f(i,j,k,8) + f(i,j,k,14)) - (f(i,j,k,3) + f(i,j,k,11) + f(i,j,k,17) + f(i,j,k,15) + f(i,j,k,9)) ) ./ rho(i, j, k) + ffx(i, j, k) * 0.5 ./ rho(i, j, k);
-                    v(i,j,k) = ( (f(i,j,k,4) + f(i,j,k,8) + f(i,j,k,15) + f(i,j,k,18) + f(i,j,k,12)) - (f(i,j,k,5) + f(i,j,k,14) + f(i,j,k,9) + f(i,j,k,13) + f(i,j,k,19)) ) ./ rho(i, j, k) + ffy(i, j, k) * 0.5 ./ rho(i, j, k);
-                    w(i,j,k) = ( (f(i,j,k,7) + f(i,j,k,16) + f(i,j,k,11) + f(i,j,k,18) + f(i,j,k,13)) - (f(i,j,k,6) + f(i,j,k,10) + f(i,j,k,17) + f(i,j,k,12) + f(i,j,k,19)) ) ./ rho(i, j, k) + ffz(i, j, k) * 0.5 ./ rho(i, j, k);
+                    % u(i,j,k) = ( (f(i,j,k,2) + f(i,j,k,16) + f(i,j,k,10) + f(i,j,k,8) + f(i,j,k,14)) - (f(i,j,k,3) + f(i,j,k,11) + f(i,j,k,17) + f(i,j,k,15) + f(i,j,k,9)) ) ./ rho(i, j, k) + ffx(i, j, k) * 0.5 ./ rho(i, j, k);
+                    % v(i,j,k) = ( (f(i,j,k,4) + f(i,j,k,8) + f(i,j,k,15) + f(i,j,k,18) + f(i,j,k,12)) - (f(i,j,k,5) + f(i,j,k,14) + f(i,j,k,9) + f(i,j,k,13) + f(i,j,k,19)) ) ./ rho(i, j, k) + ffy(i, j, k) * 0.5 ./ rho(i, j, k);
+                    % w(i,j,k) = ( (f(i,j,k,7) + f(i,j,k,16) + f(i,j,k,11) + f(i,j,k,18) + f(i,j,k,13)) - (f(i,j,k,6) + f(i,j,k,10) + f(i,j,k,17) + f(i,j,k,12) + f(i,j,k,19)) ) ./ rho(i, j, k) + ffz(i, j, k) * 0.5 ./ rho(i, j, k);
+                    
+                    u(i,j,k) = 0;
+                    v(i,j,k) = 0;
+                    w(i,j,k) = 0;
                     
                     uu = 0.5 * (u(i,j,k).^2 + v(i,j,k).^2 + w(i,j,k).^2) / cssq;
                     rho(i,j,k) = sum(f(i,j,k,:),4);

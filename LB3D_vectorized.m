@@ -1,15 +1,37 @@
+%% MUDANÇAS A SEREM FEITAS
+
+% mudança 1: verificar e garantir a conservação de massa
+% adicionar uma verificação no final de cada passo de tempo para garantir que a massa total (soma de `rho` e `fi`) permaneça constante ao longo da simulação. Isso pode ajudar a identificar se há perda de massa inesperada.
+% massatotal = sum(rho(:)) + sum(fi(:));
+% disp(['Massa total no passo ', num2str(t), ': ', num2str(massatotal)]);
+
+% mudança 2: alterar as condições de contorno para periódicas
+% em vez de replicar os valores de `fi` nas bordas, usar condições periódicas para evitar perda de densidade.
+
+% mudança 3: ajustar o cálculo de `ffx`, `ffy`, `ffz`
+% multiplicar as forças de tensão superficial por um fator menor, se necessário, para evitar dissipação excessiva.
+
+% mudança 4: corrigir atualização de `fneq` no cálculo de `fcirc`
+% certificar-se de que `fneq` esteja sendo recalculado adequadamente para cada direção.
+
+% mudança 5: ajustar o valor inicial do raio da bolha
+% ajuste o valor de `20` em `tanh(10*(20-Ri)/3)` para que a bolha tenha um tamanho inicial maior, o que pode ajudar a evitar dissipação precoce.
+
+% mudança 6: aumentar o parâmetro `sharp_c`
+% aumentar `sharp_c` para tornar a interface mais nítida e preservar a forma da bolha por mais tempo.
+
 %% D3Q19 
 clc; clearvars; close all
 
 %% Parâmetros Gerais
 
-slicebool = 2;
+slicebool = 1;
 nlinks = 19;
 tau = 0.8;
 cssq = 1/3;
 omega = 1/tau;
 sharp_c = 0.1;
-sigma = 0.024;
+sigma = 0.01;
 
 [nx, ny, nz] = deal(50);
 nsteps = 20000; 
@@ -126,7 +148,6 @@ for t = 1:nsteps
         feq = p(l) * (rho + rho .* (udotc + 0.5 .* udotc.^2 - uu)) - 0.5 .* HeF;
         fneq = f(:,:,:,l) - feq;        
     end
-
     pxx = sum(fneq([2, 3, 8, 9, 10, 11, 14, 15, 16, 17]));
     pyy = sum(fneq([4, 5, 8, 9, 12, 13, 14, 15, 18, 19]));
     pzz = sum(fneq([6, 7, 10, 11, 12, 13, 16, 17, 18, 19]));
@@ -150,7 +171,7 @@ for t = 1:nsteps
                 2 * ex(l) .* ez(l) .* pxz + ...
                 2 * ey(l) .* ez(l) .* pyz;
         fcirc = feq + (1-omega) * (p(l) / (2*cssq^2)) * fneq + HeF;
-        f(:,:,:,l) = circshift(fcirc, [ex(l),ey(l),ez(l)]);
+        f(:,:,:,l) = circshift(fcirc,[ex(l),ey(l),ez(l)]);
     end
     for l = 1:gpoints
         udotc = (u * ex(l) + v * ey(l) + w * ez(l)) / cssq;

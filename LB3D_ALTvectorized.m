@@ -7,7 +7,7 @@ HeGuo = 2;
 
 slicebool = 2;
 nlinks = 19;
-tau = 0.8;
+tau = 0.8s;
 cssq = 1/3;
 omega = 1/tau;
 sharp_c = 0.1;
