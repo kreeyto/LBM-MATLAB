@@ -81,9 +81,9 @@ for t = 1:nsteps
     % Normal e arrays
     [grad_fix, grad_fiy, grad_fiz] = deal(zeros(nx, ny, nz));
     for l = 1:19
-        grad_fix = grad_fix + 3 * p(l) .* ex(l) .* circshift(fi,[-ex(l),-ey(l),-ez(l)]);
-        grad_fiy = grad_fiy + 3 * p(l) .* ey(l) .* circshift(fi,[-ex(l),-ey(l),-ez(l)]);
-        grad_fiz = grad_fiz + 3 * p(l) .* ez(l) .* circshift(fi,[-ex(l),-ey(l),-ez(l)]);
+        grad_fix = grad_fix + 3 * p(l) .* ex(l) .* circshift(fi,[ex(l),ey(l),ez(l)]);
+        grad_fiy = grad_fiy + 3 * p(l) .* ey(l) .* circshift(fi,[ex(l),ey(l),ez(l)]);
+        grad_fiz = grad_fiz + 3 * p(l) .* ez(l) .* circshift(fi,[ex(l),ey(l),ez(l)]);
     end
     mod_grad = sqrt(grad_fix.^2 + grad_fiy.^2 + grad_fiz.^2) + 1e-9;
     normx = grad_fix ./ mod_grad;
@@ -94,18 +94,17 @@ for t = 1:nsteps
     % Curvatura e forças de tensão superficial
     curvature = zeros(nx, ny, nz);
     for l = 1:19
-        circnormx = circshift(normx,[-ex(l),-ey(l),-ez(l)]);
-        circnormy = circshift(normy,[-ex(l),-ey(l),-ez(l)]);
-        circnormz = circshift(normz,[-ex(l),-ey(l),-ez(l)]);
+        circnormx = circshift(normx,[ex(l),ey(l),ez(l)]);
+        circnormy = circshift(normy,[ex(l),ey(l),ez(l)]);
+        circnormz = circshift(normz,[ex(l),ey(l),ez(l)]);
         curvature = curvature - 3 * p(l) .* (ex(l) .* circnormx + ey(l) .* circnormy + ez(l) .* circnormz);
     end
     ffx = sigma .* curvature .* normx .* indicator;
     ffy = sigma .* curvature .* normy .* indicator;
     ffz = sigma .* curvature .* normz .* indicator;
 
-    % Momentos
-    rho = sum(f, 4);
-    
+    % Momentos    
+    % [u, v, w] = deal(zeros(nx,ny,nz));
     u = sum(f(:,:,:, [2, 16, 10, 8, 14]), 4) - sum(f(:,:,:, [3, 11, 17, 15, 9]), 4);
     v = sum(f(:,:,:, [4, 8, 15, 18, 12]), 4) - sum(f(:,:,:, [5, 14, 9, 13, 19]), 4);
     w = sum(f(:,:,:, [7, 16, 11, 18, 13]), 4) - sum(f(:,:,:, [6, 10, 17, 12, 19]), 4);
@@ -115,8 +114,8 @@ for t = 1:nsteps
     w = w ./ rho + ffz * 0.5 ./ rho;
  
     uu = 0.5 * (u.^2 + v.^2 + w.^2) / cssq;
-    
-    [pxx, pyy, pzz, pxy, pxz, pyz] = deal(zeros(nx,ny,nz));
+    rho = sum(f, 4);
+    % [pxx, pyy, pzz, pxy, pxz, pyz] = deal(zeros(nx,ny,nz));
     for l = 1:19
         udotc = (u * ex(l) + v * ey(l) + w * ez(l)) / cssq;
         HeF = (p(l) * (rho + rho .* (udotc + 0.5 .* udotc.^2 - uu))) ...
@@ -126,14 +125,14 @@ for t = 1:nsteps
                    ) ./ (rho .* cssq);
         feq = p(l) * (rho + rho .* (udotc + 0.5 .* udotc.^2 - uu)) - 0.5 .* HeF;
         fneq = f(:,:,:,l) - feq;        
-
-        pxx = sum(fneq([2, 3, 8, 9, 10, 11, 14, 15, 16, 17]));
-        pyy = sum(fneq([4, 5, 8, 9, 12, 13, 14, 15, 18, 19]));
-        pzz = sum(fneq([6, 7, 10, 11, 12, 13, 16, 17, 18, 19]));
-        pxy = sum(fneq([8, 9])) - sum(fneq([14, 15]));
-        pxz = sum(fneq([10, 11])) - sum(fneq([16, 17]));
-        pyz = sum(fneq([12, 13])) - sum(fneq([18, 19]));
     end
+
+    pxx = sum(fneq([2, 3, 8, 9, 10, 11, 14, 15, 16, 17]));
+    pyy = sum(fneq([4, 5, 8, 9, 12, 13, 14, 15, 18, 19]));
+    pzz = sum(fneq([6, 7, 10, 11, 12, 13, 16, 17, 18, 19]));
+    pxy = sum(fneq([8, 9])) - sum(fneq([14, 15]));
+    pxz = sum(fneq([10, 11])) - sum(fneq([16, 17]));
+    pyz = sum(fneq([12, 13])) - sum(fneq([18, 19]));
 
     % Colisão
     for l = 1:19
@@ -151,7 +150,7 @@ for t = 1:nsteps
                 2 * ex(l) .* ez(l) .* pxz + ...
                 2 * ey(l) .* ez(l) .* pyz;
         fcirc = feq + (1-omega) * (p(l) / (2*cssq^2)) * fneq + HeF;
-        f(:,:,:,l) = circshift(fcirc, [ex(l), ey(l), ez(l)]);
+        f(:,:,:,l) = circshift(fcirc, [ex(l),ey(l),ez(l)]);
     end
     for l = 1:gpoints
         udotc = (u * ex(l) + v * ey(l) + w * ez(l)) / cssq;
@@ -161,30 +160,17 @@ for t = 1:nsteps
     end    
 
     % Streaming 
-    for l = 1:19
-        f(:,:,:,l) = circshift(f(:,:,:,l),[ex(l),ey(l),ez(l),0]);
-    end
     for l = 1:gpoints
-        g(:,:,:,l) = circshift(g(:,:,:,l),[ex(l),ey(l),ez(l),0]);
+        g(:,:,:,l) = circshift(g(:,:,:,l),[ex(l),ey(l),ez(l)]);
     end
 
-    for i = 1:nx
-        for j = 1:ny
-            for k = 1:nz
-                if isfluid(i,j,k) == 1
-                    for l = 1:19
-                        if (i + ex(l) > 0 && j + ey(l) > 0 && k + ez(l) > 0)
-                            f(i + ex(l), j + ey(l), k + ez(l), l) = rho(i,j,k) .* p(l); 
-                        end
-                    end
-                    for l = 1:gpoints
-                        if (i + ex(l) > 0 && j + ey(l) > 0 && k + ez(l) > 0)
-                            g(i + ex(l), j + ey(l), k + ez(l), l) = fi(i,j,k) .* p_g(l);
-                        end
-                    end
-                end
-            end
-        end
+    for l = 1:19
+        fcirc = rho .* p(l);
+        f(:,:,:,l) = circshift(fcirc,[ex(l),ey(l),ez(l)]);
+    end
+    for l = 1:gpoints
+        gcirc = fi .* p_g(l);
+        g(:,:,:,l) = circshift(gcirc,[ex(l),ey(l),ez(l)]);
     end
     
     fi(:, :, 1) = fi(:, :, 2);  
