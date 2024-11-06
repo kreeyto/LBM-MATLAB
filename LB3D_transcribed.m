@@ -258,7 +258,7 @@ for t = 1:nsteps
             surfpatch = patch(isosurface(x, y, z, fi));
             set(surfpatch, 'FaceColor', 'red', 'EdgeColor', 'none'); 
             xlabel('X'); ylabel('Y'); zlabel('Z');
-            axis equal;
+            axis equal; 
             camlight; lighting phong; 
             title(['t = ', num2str(t)]);
             view(3); drawnow;

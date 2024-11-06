@@ -1,40 +1,18 @@
-%% MUDANÇAS A SEREM FEITAS
-
-% mudança 1: verificar e garantir a conservação de massa
-% adicionar uma verificação no final de cada passo de tempo para garantir que a massa total (soma de `rho` e `fi`) permaneça constante ao longo da simulação. Isso pode ajudar a identificar se há perda de massa inesperada.
-% massatotal = sum(rho(:)) + sum(fi(:));
-% disp(['Massa total no passo ', num2str(t), ': ', num2str(massatotal)]);
-
-% mudança 2: alterar as condições de contorno para periódicas
-% em vez de replicar os valores de `fi` nas bordas, usar condições periódicas para evitar perda de densidade.
-
-% mudança 3: ajustar o cálculo de `ffx`, `ffy`, `ffz`
-% multiplicar as forças de tensão superficial por um fator menor, se necessário, para evitar dissipação excessiva.
-
-% mudança 4: corrigir atualização de `fneq` no cálculo de `fcirc`
-% certificar-se de que `fneq` esteja sendo recalculado adequadamente para cada direção.
-
-% mudança 5: ajustar o valor inicial do raio da bolha
-% ajuste o valor de `20` em `tanh(10*(20-Ri)/3)` para que a bolha tenha um tamanho inicial maior, o que pode ajudar a evitar dissipação precoce.
-
-% mudança 6: aumentar o parâmetro `sharp_c`
-% aumentar `sharp_c` para tornar a interface mais nítida e preservar a forma da bolha por mais tempo.
-
 %% D3Q19 
 clc; clearvars; close all
 
 %% Parâmetros Gerais
 
-slicebool = 1;
+slicebool = 3;
 nlinks = 19;
 tau = 0.8;
 cssq = 1/3;
 omega = 1/tau;
 sharp_c = 0.1;
-sigma = 0.01;
+sigma = 0.024;
 
 [nx, ny, nz] = deal(50);
-nsteps = 20000; 
+nsteps = 10000; 
 
 gpoints = 15;
 f = zeros(nx,ny,nz,19); 
@@ -93,6 +71,12 @@ for i = 1:gpoints
     g(:,:,:,i) = p_g(i) * fi(:,:,:);
 end
 
+%% Visualização
+if slicebool == 3
+    hVol = volshow(fi, 'RenderingStyle', 'MaximumIntensityProjection');
+    viewer = hVol.Parent;
+    hFig = viewer.Parent;
+end
 %% Loop de Simulação
 
 for t = 1:nsteps
@@ -200,28 +184,28 @@ for t = 1:nsteps
     fi(nx, :, :) = fi(nx-1, :, :); 
     fi(:, 1, :) = fi(:, 2, :); 
     fi(:, ny, :) = fi(:, ny-1, :); 
-
+    
     % Visualização 
     if mod(t, 1) == 0
         if slicebool == 1
-            hFig = figure(1); clf;
-            x = 1:nx; y = 1:ny; z = 1:nz;
+            clf; x = 1:nx; y = 1:ny; z = 1:nz;
             h = slice(x, y, z, fi, [], ny/2, []); 
             shading interp; colorbar; 
             xlabel('X'); ylabel('Y'); zlabel('Z'); 
             title(['t = ', num2str(t)]);
             view(3); drawnow; 
-        else
-            hFig = figure(1); clf;
-            x = 1:nx; y = 1:ny; z = 1:nz;
-            surfpatch = patch(isosurface(x, y, z, fi, 0.5));
+        elseif slicebool == 2
+            clf; x = 1:nx; y = 1:ny; z = 1:nz;
+            surfpatch = patch(isosurface(x, y, z, fi));
             set(surfpatch, 'FaceColor', 'red', 'EdgeColor', 'none'); 
             xlabel('X'); ylabel('Y'); zlabel('Z');
-            axis([1 nx 1 ny 1 nz]);
-            axis equal;
+            axis equal; axis([1 nx 1 ny 1 nz]);
             camlight; lighting phong; 
             title(['t = ', num2str(t)]);
             view(3); drawnow;
+        else
+            hVol.Data = rho; 
+            drawnow;
         end
     end
 
