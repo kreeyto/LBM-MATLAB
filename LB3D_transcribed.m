@@ -1,9 +1,9 @@
 %% D3Q19 
 clc; clearvars; close all
-
+tic
 %% Parâmetros Gerais
 
-slicebool = 2;
+slicebool = 3;
 nlinks = 19;
 tau = 0.8;
 cssq = 1/3;
@@ -12,7 +12,7 @@ sharp_c = 0.1;
 sigma = 0.024;
 
 [nx, ny, nz] = deal(50);
-nsteps = 20000; 
+nsteps = 100; 
 
 gpoints = 15;
 f = zeros(nx,ny,nz,19); 
@@ -75,6 +75,14 @@ end
 
 for i = 1:gpoints
     g(:,:,:,i) = p_g(i) * fi(:,:,:);
+end
+
+%% Visualização
+
+if slicebool == 3
+    hVol = volshow(fi, 'RenderingStyle', 'MaximumIntensityProjection');
+    viewer = hVol.Parent;
+    hFig = viewer.Parent;
 end
 
 %% Loop de Simulação
@@ -252,7 +260,7 @@ for t = 1:nsteps
             xlabel('X'); ylabel('Y'); zlabel('Z'); 
             title(['t = ', num2str(t)]);
             view(3); drawnow; 
-        else 
+        elseif slicebool == 2
             hFig = figure(1); clf;
             x = 1:nx; y = 1:ny; z = 1:nz;
             surfpatch = patch(isosurface(x, y, z, fi));
@@ -262,11 +270,15 @@ for t = 1:nsteps
             camlight; lighting phong; 
             title(['t = ', num2str(t)]);
             view(3); drawnow;
+        else
+            hVol.Data = fi; 
+            drawnow;
         end
     end
 
     disp(['Passo de tempo: ', num2str(t)]);
 end
+toc
 
 
 

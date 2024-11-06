@@ -3,12 +3,12 @@ clc; clearvars; close all
 
 %% Parâmetros Gerais
 
-slicebool = 3;
+slicebool = 1;
 nlinks = 19;
 tau = 0.8;
 cssq = 1/3;
 omega = 1/tau;
-sharp_c = 0.1;
+sharp_c = 0.15*3;
 sigma = 0.024;
 
 [nx, ny, nz] = deal(50);
@@ -56,7 +56,7 @@ for i = 1:nx
     for j = 1:ny
         for k = 1:nz
             Ri = sqrt((i - nx/2)^2 + (j - ny/2)^2 + (k - nz/2)^2);
-            fi(i,j,k) = 0.5 + 0.5 * tanh(10*(20-Ri)/3);
+            fi(i,j,k) = 0.5 + 0.5 * tanh(2*(20-Ri)/3);
         end
     end
 end
@@ -204,7 +204,7 @@ for t = 1:nsteps
             title(['t = ', num2str(t)]);
             view(3); drawnow;
         else
-            hVol.Data = rho; 
+            hVol.Data = fi; 
             drawnow;
         end
     end
