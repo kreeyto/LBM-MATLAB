@@ -180,7 +180,6 @@ for tt=1:nsteps
                      udotc=(u(ii,jj)*ex(kk) + v(ii,jj)*ey(kk))/cssq;
                      feq=p(kk)*(rho(ii,jj) + rho(ii,jj).*(udotc + 0.5.*udotc.^2 - uu));
                      
-
                      HeF=0.5.*(p(kk)*(rho(ii,jj) + rho(ii,jj).*(udotc + 0.5.*udotc.^2 - uu))).*((ex(kk)-u(ii,jj)).*ffx(ii,jj) + (ey(kk)-v(ii,jj)).*ffy(ii,jj))./(rho(ii,jj).*cssq);
                     
                      fneq=(ex(kk).*ex(kk)-cssq)*pxx(ii,jj)+(ey(kk).*ey(kk)-cssq)*pyy(ii,jj) ...
