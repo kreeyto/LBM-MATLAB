@@ -77,7 +77,7 @@ rho(:,:)=1;
 for ii=2:(nx-1)
     for jj=2:ny-1
         
-            Ri=sqrt((ii-(nx/2))^2/2.^2+(jj-(ny/2))^2);
+            Ri=sqrt((ii-(nx/2))^2/4+(jj-(ny/2))^2);
             fi(ii,jj) = 0.5 + 0.5 * tanh(2*(20-Ri)/3);
     end
 end
