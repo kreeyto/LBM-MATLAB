@@ -1,6 +1,5 @@
 %% D3Q19 
 clc; clearvars; close all
-tic
 %% Parâmetros Gerais
 
 % campo de velocidade do campo de fase
@@ -25,8 +24,8 @@ elseif pf == "D3Q15"
 elseif pf == "D3Q7"
     gpoints = 7;
 end
-f = zeros(nx,ny,nz,fpoints); 
-g = zeros(nx,ny,nz,gpoints); 
+f = gpuArray.zeros(nx,ny,nz,fpoints); 
+g = gpuArray.zeros(nx,ny,nz,gpoints); 
 
 %% Matrizes e Variáveis
 
@@ -34,15 +33,15 @@ g = zeros(nx,ny,nz,gpoints);
  fi, normx, normy, normz, ...
  curvature, indicator, ...
  ffx, ffy, ffz, ...
- mod_grad, isfluid] = deal(zeros(nx,ny,nz));
+ mod_grad, isfluid] = deal(gpuArray.zeros(nx,ny,nz));
 
 [pxx, pyy, pzz, ...
- pxy, pxz, pyz] = deal(ones(nx,ny,nz));
+ pxy, pxz, pyz] = deal(gpuArray.ones(nx,ny,nz));
 
-p = zeros(1,fpoints);
-p_g = zeros(1,gpoints);
+p = gpuArray.zeros(1,fpoints);
+p_g = gpuArray.zeros(1,gpoints);
 
-fneq = zeros(fpoints,1,1); 
+fneq = gpuArray.zeros(fpoints,1,1); 
 isfluid(2:nx-1,2:ny-1,2:nz-1) = 1;
 rho(:,:,:) = 1;
 
@@ -282,7 +281,6 @@ for t = 1:nsteps
 
     disp(['Passo de tempo: ', num2str(t)]);
 end
-toc
 
 
 
