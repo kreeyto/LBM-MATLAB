@@ -124,9 +124,9 @@ for t = 1:nsteps
                     grad_fiz = grad_fiz + 3 * w(l) .* ciz(l) .* ((phi(i+cix(l),j+ciy(l),k+ciz(l))));
                 end
                 mod_grad(i,j,k) = sqrt(grad_fix.^2 + grad_fiy.^2 + grad_fiz.^2);
-                normx(i,j,k) = grad_fix ./ (mod_grad(i,j,k) + 1e-9);
-                normy(i,j,k) = grad_fiy ./ (mod_grad(i,j,k) + 1e-9);
-                normz(i,j,k) = grad_fiz ./ (mod_grad(i,j,k) + 1e-9);
+                normx(i,j,k) = grad_fix ./ (mod_grad(i,j,k) + 10^-9);
+                normy(i,j,k) = grad_fiy ./ (mod_grad(i,j,k) + 10^-9);
+                normz(i,j,k) = grad_fiz ./ (mod_grad(i,j,k) + 10^-9);
                 indicator(i,j,k) = sqrt(grad_fix.^2 + grad_fiy.^2 + grad_fiz.^2);
             end
         end
@@ -152,36 +152,45 @@ for t = 1:nsteps
     end
 
     % Momentos
-    for i = 2:nx-1
-        for j = 2:ny-1
-            for k = 2:nz-1
-                ux(i,j,k) = sum(f(i,j,k,[2,16,10,8,14])) - sum(f(i,j,k,[3,11,17,15,8]));
-                uy(i,j,k) = sum(f(i,j,k,[4,8,15,18,12])) - sum(f(i,j,k,[5,14,9,13,19]));
-                uz(i,j,k) = sum(f(i,j,k,[7,16,11,18,13])) - sum(f(i,j,k,[6,10,17,12,19]));
-                ux(i,j,k) = ux(i,j,k) ./ rho(i,j,k) + ffx(i,j,k) * 0.5 ./ rho(i,j,k);
-                uy(i,j,k) = uy(i,j,k) ./ rho(i,j,k) + ffy(i,j,k) * 0.5 ./ rho(i,j,k);
-                uz(i,j,k) = uz(i,j,k) ./ rho(i,j,k) + ffz(i,j,k) * 0.5 ./ rho(i,j,k);
-                uu = 0.5 * (ux(i,j,k).^2 + uy(i,j,k).^2 + uz(i,j,k).^2) / cssq;
-                rho(i,j,k) = sum(f(i,j,k,:),4);
-                for l = 1:fpoints
-                    udotc = (ux(i,j,k) * cix(l) + uy(i,j,k) * ciy(l) + uz(i,j,k) * ciz(l)) / cssq;
-                    HeF = 0.5 .* (w(l) * (rho(i,j,k) + rho(i,j,k) .* (udotc + 0.5.*udotc.^2 - uu))) ...
-                        .* ((cix(l) - ux(i,j,k)) .* ffx(i,j,k) + ...
-                            (ciy(l) - uy(i,j,k)) .* ffy(i,j,k) + ...
-                            (ciz(l) - uz(i,j,k)) .* ffz(i,j,k) ...
-                           ) ./ (rho(i,j,k) .* cssq);
-                    feq = w(l) * (rho(i,j,k) + rho(i,j,k) .* (udotc + 0.5.*udotc.^2 - uu)) - HeF;
-                    fneq(l) = f(i,j,k,l) - feq;
-                end
-                pxx(i,j,k) = sum(fneq([2,3,8,9,10,11,14,15,16,17]));
-                pyy(i,j,k) = sum(fneq([4,5,8,9,12,13,14,15,18,19]));
-                pzz(i,j,k) = sum(fneq([6,7,10,11,12,13,16,17,18,19]));
-                pxy(i,j,k) = fneq(8) + fneq(9) - fneq(14) - fneq(15);
-                pxz(i,j,k) = fneq(10) + fneq(11) - fneq(16) - fneq(17);
-                pyz(i,j,k) = fneq(12) + fneq(13) - fneq(18) - fneq(19);
-            end
-        end
-    end
+    % Calcula ux, uy, uz vetorizados para cada célula no domínio interior
+ux = (sum(f(2:nx-1, 2:ny-1, 2:nz-1, [2,16,10,8,14]), 4) - sum(f(2:nx-1, 2:ny-1, 2:nz-1, [3,11,17,15,8]), 4)) ./ rho(2:nx-1, 2:ny-1, 2:nz-1) + ffx(2:nx-1, 2:ny-1, 2:nz-1) * 0.5 ./ rho(2:nx-1, 2:ny-1, 2:nz-1);
+uy = (sum(f(2:nx-1, 2:ny-1, 2:nz-1, [4,8,15,18,12]), 4) - sum(f(2:nx-1, 2:ny-1, 2:nz-1, [5,14,9,13,19]), 4)) ./ rho(2:nx-1, 2:ny-1, 2:nz-1) + ffy(2:nx-1, 2:ny-1, 2:nz-1) * 0.5 ./ rho(2:nx-1, 2:ny-1, 2:nz-1);
+uz = (sum(f(2:nx-1, 2:ny-1, 2:nz-1, [7,16,11,18,13]), 4) - sum(f(2:nx-1, 2:ny-1, 2:nz-1, [6,10,17,12,19]), 4)) ./ rho(2:nx-1, 2:ny-1, 2:nz-1) + ffz(2:nx-1, 2:ny-1, 2:nz-1) * 0.5 ./ rho(2:nx-1, 2:ny-1, 2:nz-1);
+
+% Cálculo de uu vetorizado
+uu = 0.5 * (ux.^2 + uy.^2 + uz.^2) / cssq;
+
+% Atualiza a densidade vetorizada
+rho(2:nx-1, 2:ny-1, 2:nz-1) = sum(f(2:nx-1, 2:ny-1, 2:nz-1, :), 4);
+
+% Inicializando arrays para pressão (stress tensor components)
+pxx = zeros(nx, ny, nz);
+pyy = zeros(nx, ny, nz);
+pzz = zeros(nx, ny, nz);
+pxy = zeros(nx, ny, nz);
+pxz = zeros(nx, ny, nz);
+pyz = zeros(nx, ny, nz);
+
+% Vetoriza o loop interno sobre l para calcular fneq e HeF para cada direção
+for l = 1:fpoints
+    % Calcula udotc e HeF para a direção l
+    udotc = (ux * cix(l) + uy * ciy(l) + uz * ciz(l)) / cssq;
+    HeF = 0.5 * (w(l) * (rho + rho .* (udotc + 0.5 .* udotc.^2 - uu))) .* ...
+        ((cix(l) - ux) .* ffx(2:nx-1, 2:ny-1, 2:nz-1) + ...
+         (ciy(l) - uy) .* ffy(2:nx-1, 2:ny-1, 2:nz-1) + ...
+         (ciz(l) - uz) .* ffz(2:nx-1, 2:ny-1, 2:nz-1)) ./ (rho .* cssq);
+    
+    feq = w(l) * (rho + rho .* (udotc + 0.5 .* udotc.^2 - uu)) - HeF;
+    fneq = f(2:nx-1, 2:ny-1, 2:nz-1, l) - feq;
+    
+    % Acumula as componentes do tensor de tensões usando fneq
+    pxx(2:nx-1, 2:ny-1, 2:nz-1) = pxx(2:nx-1, 2:ny-1, 2:nz-1) + sum(fneq(:,:,:, [2,3,8,9,10,11,14,15,16,17]), 4);
+    pyy(2:nx-1, 2:ny-1, 2:nz-1) = pyy(2:nx-1, 2:ny-1, 2:nz-1) + sum(fneq(:,:,:, [4,5,8,9,12,13,14,15,18,19]), 4);
+    pzz(2:nx-1, 2:ny-1, 2:nz-1) = pzz(2:nx-1, 2:ny-1, 2:nz-1) + sum(fneq(:,:,:, [6,7,10,11,12,13,16,17,18,19]), 4);
+    pxy(2:nx-1, 2:ny-1, 2:nz-1) = pxy(2:nx-1, 2:ny-1, 2:nz-1) + (fneq(:,:,:,8) + fneq(:,:,:,9) - fneq(:,:,:,14) - fneq(:,:,:,15));
+    pxz(2:nx-1, 2:ny-1, 2:nz-1) = pxz(2:nx-1, 2:ny-1, 2:nz-1) + (fneq(:,:,:,10) + fneq(:,:,:,11) - fneq(:,:,:,16) - fneq(:,:,:,17));
+    pyz(2:nx-1, 2:ny-1, 2:nz-1) = pyz(2:nx-1, 2:ny-1, 2:nz-1) + (fneq(:,:,:,12) + fneq(:,:,:,13) - fneq(:,:,:,18) - fneq(:,:,:,19));
+end
 
     % Colisão
     for i = 2:nx-1

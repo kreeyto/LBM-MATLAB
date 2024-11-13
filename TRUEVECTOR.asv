@@ -144,7 +144,7 @@ for t = 1:nsteps
     ffy(2:nx-1,2:ny-1,2:nz-1) = sigma .* curvature(2:nx-1,2:ny-1,2:nz-1) .* normy(2:nx-1,2:ny-1,2:nz-1) .* indicator(2:nx-1,2:ny-1,2:nz-1);
     ffz(2:nx-1,2:ny-1,2:nz-1) = sigma .* curvature(2:nx-1,2:ny-1,2:nz-1) .* normz(2:nx-1,2:ny-1,2:nz-1) .* indicator(2:nx-1,2:ny-1,2:nz-1);
 
-    % Momentos - NÃO FEITO
+    % Momentos
     ux(i,j,k) = sum(f(i,j,k,[2,16,10,8,14])) - sum(f(i,j,k,[3,11,17,15,8]));
     uy(i,j,k) = sum(f(i,j,k,[4,8,15,18,12])) - sum(f(i,j,k,[5,14,9,13,19]));
     uz(i,j,k) = sum(f(i,j,k,[7,16,11,18,13])) - sum(f(i,j,k,[6,10,17,12,19]));
@@ -170,36 +170,7 @@ for t = 1:nsteps
     pxz(i,j,k) = fneq(10) + fneq(11) - fneq(16) - fneq(17);
     pyz(i,j,k) = fneq(12) + fneq(13) - fneq(18) - fneq(19);
                 
-   % Colisão - NÃO FEITO
-    for i = 2:nx-1
-        for j = 2:ny-1
-            for k = 2:nz-1
-                uu = 0.5 * (ux(i,j,k).^2 + uy(i,j,k).^2 + uz(i,j,k).^2) / cssq;
-                for l = 1:fpoints
-                    udotc = (ux(i,j,k) * cix(l) + uy(i,j,k) * ciy(l) + uz(i,j,k) * ciz(l)) / cssq;
-                    feq = w(l) * (rho(i,j,k) + rho(i,j,k) .* (udotc + 0.5.*udotc.^2 - uu));
-                    HeF = 0.5 .* (w(l) * (rho(i,j,k) + rho(i,j,k) .* (udotc + 0.5.*udotc.^2 - uu))) .* ...
-                        ((cix(l) - ux(i,j,k)) .* ffx(i,j,k) + ...
-                         (ciy(l) - uy(i,j,k)) .* ffy(i,j,k) + ...
-                         (ciz(l) - uz(i,j,k)) .* ffz(i,j,k) ...
-                        ) ./ (rho(i,j,k) .* cssq);
-                    fneq = (cix(l) .* cix(l) - cssq) * pxx(i,j,k) + ...
-                           (ciy(l) .* ciy(l) - cssq) * pyy(i,j,k) + ...
-                           (ciz(l) .* ciz(l) - cssq) * pzz(i,j,k) + ...
-                           (cix(l) .* ciy(l) - cssq) * pxy(i,j,k) + ...
-                           (cix(l) .* ciz(l) - cssq) * pxz(i,j,k) + ...
-                           (ciy(l) .* ciz(l) - cssq) * pyz(i,j,k);
-                    f(i+cix(l),j+ciy(l),k+ciz(l),l) = feq + (1-omega) * (w(l) / (2*cssq^2)) * fneq + HeF;
-                end
-                for l = 1:gpoints
-                    udotc = (ux(i,j,k) * cix(l) + uy(i,j,k) * ciy(l) + uz(i,j,k) * ciz(l)) / cssq;
-                    feq = w_g(l) .* phi(i,j,k) .* (1 + udotc);
-                    Hi = sharp_c .* phi(i,j,k) .* (1 - phi(i,j,k)) .* (cix(l) .* normx(i,j,k) + ciy(l) .* normy(i,j,k) + ciz(l) .* normz(i,j,k)); 
-                    g(i,j,k,l) = feq + w_g(l) .* Hi;
-                end
-            end
-        end
-    end
+    % Colisão
 
     %% NÃO VETORIZADOS
     % Streaming 

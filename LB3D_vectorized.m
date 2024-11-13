@@ -81,7 +81,7 @@ end
 
 for t = 1:nsteps
 
-    % Campo de fase
+    % Campo de fase5    
     fi = sum(g, 4);
 
     % Normal e arrays
