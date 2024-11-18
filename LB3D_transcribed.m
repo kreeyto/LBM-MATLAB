@@ -23,8 +23,8 @@ elseif pf == "D3Q15"
 elseif pf == "D3Q7"
     gpoints = 7;
 end
-f = zeros(nx,ny,nz,fpoints); 
-g = zeros(nx,ny,nz,gpoints); 
+f = gpuArray.zeros(nx,ny,nz,fpoints); 
+g = gpuArray.zeros(nx,ny,nz,gpoints); 
 
 %% Matrizes e Variáveis
 
@@ -32,18 +32,17 @@ g = zeros(nx,ny,nz,gpoints);
  phi, normx, normy, normz, ...
  curvature, indicator, ...
  ffx, ffy, ffz, ...
- mod_grad, isfluid] = deal(zeros(nx,ny,nz));
+ mod_grad, isfluid] = deal(gpuArray.zeros(nx,ny,nz));
 
 [pxx, pyy, pzz, ...
- pxy, pxz, pyz] = deal(ones(nx,ny,nz));
+ pxy, pxz, pyz] = deal(gpuArray.ones(nx,ny,nz));
 
-w = zeros(1,fpoints);
-w_g = zeros(1,gpoints);
+w = gpuArray.zeros(1,fpoints);
+w_g = gpuArray.zeros(1,gpoints);
 
-fneq = zeros(fpoints,1,1); 
+fneq = gpuArray.zeros(fpoints,1,1); 
 
 isfluid(2:nx-1,2:ny-1,2:nz-1) = 1;
-% nonisfluid = (1)(nx)
 rho(:,:,:) = 1;
 
 %% Propriedades do Modelo
@@ -65,9 +64,9 @@ end
 
 % opp = [1, 3, 2, 5, 4, 7, 6, 9, 8, 11, 10, 13, 12, 15, 14, 17, 16, 19, 18];
 
-cix = [0, 1, -1, 0, 0, 0, 0, 1, -1, 1, -1, 0, 0, 1, -1, 1, -1, 0, 0];
-ciy = [0, 0, 0, 1, -1, 0, 0, 1, -1, 0, 0, 1, -1, -1, 1, 0, 0, 1, -1];
-ciz = [0, 0, 0, 0, 0, 1, -1, 0, 0, 1, -1, 1, -1, 0, 0, -1, 1, -1, 1];
+cix = gpuArray([0, 1, -1, 0, 0, 0, 0, 1, -1, 1, -1, 0, 0, 1, -1, 1, -1, 0, 0]);
+ciy = gpuArray([0, 0, 0, 1, -1, 0, 0, 1, -1, 0, 0, 1, -1, -1, 1, 0, 0, 1, -1]);
+ciz = gpuArray([0, 0, 0, 0, 0, 1, -1, 0, 0, 1, -1, 1, -1, 0, 0, -1, 1, -1, 1]);
 
 %% Cálculo da Função de Distribuição em Função da Distância Radial
 
@@ -147,11 +146,9 @@ for t = 1:nsteps
                      ciz(l) .* (normz(i+cix(l),j+ciy(l),k+ciz(l))) ...
                     );
                 end
-
                 ffx(i,j,k) = sigma .* curvature(i,j,k) .* normx(i,j,k) .* indicator(i,j,k);
                 ffy(i,j,k) = sigma .* curvature(i,j,k) .* normy(i,j,k) .* indicator(i,j,k);
                 ffz(i,j,k) = sigma .* curvature(i,j,k) .* normz(i,j,k) .* indicator(i,j,k);
-                % [ffx(i,j,k), ffy(i,j,k), ffz(i,j,k)] = deal(0);
             end
         end
     end
@@ -166,7 +163,6 @@ for t = 1:nsteps
                 ux(i,j,k) = ux(i,j,k) ./ rho(i,j,k) + ffx(i,j,k) * 0.5 ./ rho(i,j,k);
                 uy(i,j,k) = uy(i,j,k) ./ rho(i,j,k) + ffy(i,j,k) * 0.5 ./ rho(i,j,k);
                 uz(i,j,k) = uz(i,j,k) ./ rho(i,j,k) + ffz(i,j,k) * 0.5 ./ rho(i,j,k);
-                % [ux(i,j,k), uy(i,j,k), uz(i,j,k)] = deal(0);
                 uu = 0.5 * (ux(i,j,k).^2 + uy(i,j,k).^2 + uz(i,j,k).^2) / cssq;
                 rho(i,j,k) = sum(f(i,j,k,:),4);
                 for l = 1:fpoints
