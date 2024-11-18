@@ -1,7 +1,7 @@
 %% D3Q19 
 clc; clearvars; close all
 %% Parâmetros Gerais
-
+tic
 % campo de velocidade do campo de fase
 pf = "D3Q15";
 
@@ -9,11 +9,11 @@ slicebool = 1;
 tau = 1;
 cssq = 1/3;
 omega = 1/tau;
-sharp_c = 0.05;
+sharp_c = 0.1;
 sigma = 0.024;
 
 [nx, ny, nz] = deal(65);
-nsteps = 80; 
+nsteps = 10000; 
 
 fpoints = 19; 
 if pf == "D3Q19"
@@ -41,7 +41,9 @@ w = zeros(1,fpoints);
 w_g = zeros(1,gpoints);
 
 fneq = zeros(fpoints,1,1); 
+
 isfluid(2:nx-1,2:ny-1,2:nz-1) = 1;
+% nonisfluid = (1)(nx)
 rho(:,:,:) = 1;
 
 %% Propriedades do Modelo
@@ -133,6 +135,7 @@ for t = 1:nsteps
     end
 
     % Curvatura
+    
     for i = 2:nx-1
         for j = 2:ny-1
             for k = 2:nz-1
@@ -144,9 +147,11 @@ for t = 1:nsteps
                      ciz(l) .* (normz(i+cix(l),j+ciy(l),k+ciz(l))) ...
                     );
                 end
+
                 ffx(i,j,k) = sigma .* curvature(i,j,k) .* normx(i,j,k) .* indicator(i,j,k);
                 ffy(i,j,k) = sigma .* curvature(i,j,k) .* normy(i,j,k) .* indicator(i,j,k);
                 ffz(i,j,k) = sigma .* curvature(i,j,k) .* normz(i,j,k) .* indicator(i,j,k);
+                % [ffx(i,j,k), ffy(i,j,k), ffz(i,j,k)] = deal(0);
             end
         end
     end
@@ -161,6 +166,7 @@ for t = 1:nsteps
                 ux(i,j,k) = ux(i,j,k) ./ rho(i,j,k) + ffx(i,j,k) * 0.5 ./ rho(i,j,k);
                 uy(i,j,k) = uy(i,j,k) ./ rho(i,j,k) + ffy(i,j,k) * 0.5 ./ rho(i,j,k);
                 uz(i,j,k) = uz(i,j,k) ./ rho(i,j,k) + ffz(i,j,k) * 0.5 ./ rho(i,j,k);
+                % [ux(i,j,k), uy(i,j,k), uz(i,j,k)] = deal(0);
                 uu = 0.5 * (ux(i,j,k).^2 + uy(i,j,k).^2 + uz(i,j,k).^2) / cssq;
                 rho(i,j,k) = sum(f(i,j,k,:),4);
                 for l = 1:fpoints
@@ -219,19 +225,17 @@ for t = 1:nsteps
     end
 
     % Condições de contorno
-    for i = 1:nx
-        for j = 1:ny
-            for k = 1:nz
-                if isfluid(i,j,k) == 0
-                    for l = 1:fpoints
-                        if (i+cix(l)>0 && j+ciy(l)>0 && k+ciz(l)>0)
-                            f(i+cix(l),j+ciy(l),k+ciz(l),l) = rho(i,j,k) .* w(l); 
-                        end
+    for i = [1,nx]
+        for j = [1,ny]
+            for k = [1,nz]
+                for l = 1:fpoints
+                    if (i+cix(l)>0 && j+ciy(l)>0 && k+ciz(l)>0)
+                        f(i+cix(l),j+ciy(l),k+ciz(l),l) = rho(i,j,k) .* w(l); 
                     end
-                    for l = 1:gpoints
-                        if (i+cix(l)>0 && j+ciy(l)>0 && k+ciz(l)>0)
-                            g(i+cix(l),j+ciy(l),k+ciz(l),l) = phi(i,j,k) .* w_g(l);
-                        end
+                end
+                for l = 1:gpoints
+                    if (i+cix(l)>0 && j+ciy(l)>0 && k+ciz(l)>0)
+                        g(i+cix(l),j+ciy(l),k+ciz(l),l) = phi(i,j,k) .* w_g(l);
                     end
                 end
             end
@@ -247,21 +251,12 @@ for t = 1:nsteps
 
     if(mod(t,1) == 0)      
         if slicebool == 1
-            clf; x = 1:nx; y = 1:ny; z = 1:nz;
+            x = 1:nx; y = 1:ny; z = 1:nz;
             h = slice(x, y, z, phi, [], ny/2, []); 
             shading interp; colorbar; 
             xlabel('X'); ylabel('Y'); zlabel('Z'); 
             title(['t = ', num2str(t)]);
             view(3); drawnow; 
-        elseif slicebool == 2
-            clf; x = 1:nx; y = 1:ny; z = 1:nz;
-            surfpatch = patch(isosurface(x, y, z, phi));
-            set(surfpatch, 'FaceColor', 'red', 'EdgeColor', 'none'); 
-            xlabel('X'); ylabel('Y'); zlabel('Z');
-            axis equal; 
-            camlight; lighting phong; 
-            title(['t = ', num2str(t)]);
-            view(3); drawnow;
         else
             hVol.Data = phi; 
             drawnow;
@@ -269,7 +264,10 @@ for t = 1:nsteps
     end
 
     disp(['Passo de tempo: ', num2str(t)]);
+
 end
+toc
+
 
 
 
