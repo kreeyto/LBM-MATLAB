@@ -23,8 +23,8 @@ elseif pf == "D3Q15"
 elseif pf == "D3Q7"
     gpoints = 7;
 end
-f = gpuArray.zeros(nx,ny,nz,fpoints); 
-g = gpuArray.zeros(nx,ny,nz,gpoints); 
+f = zeros(nx,ny,nz,fpoints); 
+g = zeros(nx,ny,nz,gpoints); 
 
 %% Matrizes e Variáveis
 
@@ -32,15 +32,15 @@ g = gpuArray.zeros(nx,ny,nz,gpoints);
  phi, normx, normy, normz, ...
  curvature, indicator, ...
  ffx, ffy, ffz, ...
- mod_grad, isfluid] = deal(gpuArray.zeros(nx,ny,nz));
+ mod_grad, isfluid] = deal(zeros(nx,ny,nz));
 
 [pxx, pyy, pzz, ...
- pxy, pxz, pyz] = deal(gpuArray.ones(nx,ny,nz));
+ pxy, pxz, pyz] = deal(ones(nx,ny,nz));
 
-w = gpuArray.zeros(1,fpoints);
-w_g = gpuArray.zeros(1,gpoints);
+w = zeros(1,fpoints);
+w_g = zeros(1,gpoints);
 
-fneq = gpuArray.zeros(fpoints,1,1); 
+fneq = zeros(fpoints,1,1); 
 
 isfluid(2:nx-1,2:ny-1,2:nz-1) = 1;
 rho(:,:,:) = 1;
@@ -64,9 +64,9 @@ end
 
 % opp = [1, 3, 2, 5, 4, 7, 6, 9, 8, 11, 10, 13, 12, 15, 14, 17, 16, 19, 18];
 
-cix = gpuArray([0, 1, -1, 0, 0, 0, 0, 1, -1, 1, -1, 0, 0, 1, -1, 1, -1, 0, 0]);
-ciy = gpuArray([0, 0, 0, 1, -1, 0, 0, 1, -1, 0, 0, 1, -1, -1, 1, 0, 0, 1, -1]);
-ciz = gpuArray([0, 0, 0, 0, 0, 1, -1, 0, 0, 1, -1, 1, -1, 0, 0, -1, 1, -1, 1]);
+cix = [0, 1, -1, 0, 0, 0, 0, 1, -1, 1, -1, 0, 0, 1, -1, 1, -1, 0, 0];
+ciy = [0, 0, 0, 1, -1, 0, 0, 1, -1, 0, 0, 1, -1, -1, 1, 0, 0, 1, -1];
+ciz = [0, 0, 0, 0, 0, 1, -1, 0, 0, 1, -1, 1, -1, 0, 0, -1, 1, -1, 1];
 
 %% Cálculo da Função de Distribuição em Função da Distância Radial
 
