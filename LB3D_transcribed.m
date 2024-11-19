@@ -1,15 +1,15 @@
-%% D3Q19 
+% D3Q19 
 clc; clearvars; close all
 %% Parâmetros Gerais
 % campo de velocidade do campo de fase
-pf = "D3Q15";
+pf = "D3Q7";
 
 slicebool = 1;
-tau = 1;
+tau = 0.505;
 cssq = 1/3;
 omega = 1/tau;
-sharp_c = 0.1;
-sigma = 0.024;
+sharp_c = 0.15*3;
+sigma = 0.1;
 
 [nx, ny, nz] = deal(64);
 nsteps = 10000; 
@@ -178,9 +178,9 @@ for t = 1:nsteps
                     fneq = (cix(l) .* cix(l) - cssq) * pxx(i,j,k) + ...
                            (ciy(l) .* ciy(l) - cssq) * pyy(i,j,k) + ...
                            (ciz(l) .* ciz(l) - cssq) * pzz(i,j,k) + ...
-                           (cix(l) .* ciy(l) - cssq) * pxy(i,j,k) + ...
-                           (cix(l) .* ciz(l) - cssq) * pxz(i,j,k) + ...
-                           (ciy(l) .* ciz(l) - cssq) * pyz(i,j,k);
+                           2 * cix(l) .* ciy(l) .* pxy(i,j,k) + ...
+                           2 * cix(l) .* ciz(l) .* pxz(i,j,k) + ...
+                           2 * ciy(l) .* ciz(l) .* pyz(i,j,k);
                     f(i+cix(l),j+ciy(l),k+ciz(l),l) = feq + (1-omega) * (w(l) / (2*cssq^2)) * fneq + HeF;
                 end
                 for l = 1:gpoints

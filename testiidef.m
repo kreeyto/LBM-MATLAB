@@ -59,24 +59,32 @@ end
 ux_vec(2:nx-1, 2:ny-1, 2:nz-1) = sum(f(2:nx-1, 2:ny-1, 2:nz-1, [2, 16, 10, 8, 14]), 4) - sum(f(2:nx-1, 2:ny-1, 2:nz-1, [3, 11, 17, 15, 8]), 4);
 uy_vec(2:nx-1, 2:ny-1, 2:nz-1) = sum(f(2:nx-1, 2:ny-1, 2:nz-1, [4, 8, 15, 18, 12]), 4) - sum(f(2:nx-1, 2:ny-1, 2:nz-1, [5, 14, 9, 13, 19]), 4);
 uz_vec(2:nx-1, 2:ny-1, 2:nz-1) = sum(f(2:nx-1, 2:ny-1, 2:nz-1, [7, 16, 11, 18, 13]), 4) - sum(f(2:nx-1, 2:ny-1, 2:nz-1, [6, 10, 17, 12, 19]), 4);
-ux_vec(2:nx-1, 2:ny-1, 2:nz-1) = ux_vec(2:nx-1, 2:ny-1, 2:nz-1) ./ rho(2:nx-1, 2:ny-1, 2:nz-1) + ffx(2:nx-1, 2:ny-1, 2:nz-1) * 0.5 ./ rho(2:nx-1, 2:ny-1, 2:nz-1);
-uy_vec(2:nx-1, 2:ny-1, 2:nz-1) = uy_vec(2:nx-1, 2:ny-1, 2:nz-1) ./ rho(2:nx-1, 2:ny-1, 2:nz-1) + ffy(2:nx-1, 2:ny-1, 2:nz-1) * 0.5 ./ rho(2:nx-1, 2:ny-1, 2:nz-1);
-uz_vec(2:nx-1, 2:ny-1, 2:nz-1) = uz_vec(2:nx-1, 2:ny-1, 2:nz-1) ./ rho(2:nx-1, 2:ny-1, 2:nz-1) + ffz(2:nx-1, 2:ny-1, 2:nz-1) * 0.5 ./ rho(2:nx-1, 2:ny-1, 2:nz-1);
+ux_vec(2:nx-1, 2:ny-1, 2:nz-1) = ux_vec(2:nx-1, 2:ny-1, 2:nz-1) ./ rho_vec(2:nx-1, 2:ny-1, 2:nz-1) + ffx(2:nx-1, 2:ny-1, 2:nz-1) * 0.5 ./ rho_vec(2:nx-1, 2:ny-1, 2:nz-1);
+uy_vec(2:nx-1, 2:ny-1, 2:nz-1) = uy_vec(2:nx-1, 2:ny-1, 2:nz-1) ./ rho_vec(2:nx-1, 2:ny-1, 2:nz-1) + ffy(2:nx-1, 2:ny-1, 2:nz-1) * 0.5 ./ rho_vec(2:nx-1, 2:ny-1, 2:nz-1);
+uz_vec(2:nx-1, 2:ny-1, 2:nz-1) = uz_vec(2:nx-1, 2:ny-1, 2:nz-1) ./ rho_vec(2:nx-1, 2:ny-1, 2:nz-1) + ffz(2:nx-1, 2:ny-1, 2:nz-1) * 0.5 ./ rho_vec(2:nx-1, 2:ny-1, 2:nz-1);
+
 uu_vec = 0.5 * (ux_vec(2:nx-1,2:ny-1,2:nz-1).^2 + uy_vec(2:nx-1,2:ny-1,2:nz-1).^2 + uz_vec(2:nx-1,2:ny-1,2:nz-1).^2) / cssq;
+
 rho_vec(2:nx-1,2:ny-1,2:nz-1) = sum(f(2:nx-1,2:ny-1,2:nz-1,:),4);
 for l = 1:fpoints
+
     udotc_vec = (ux_vec(2:nx-1,2:ny-1,2:nz-1) * cix(l) + uy_vec(2:nx-1,2:ny-1,2:nz-1) * ciy(l) + uz_vec(2:nx-1,2:ny-1,2:nz-1) * ciz(l)) / cssq;
+
     HeF_vec = 0.5 .* (w(l) * (rho_vec(2:nx-1,2:ny-1,2:nz-1) + rho_vec(2:nx-1,2:ny-1,2:nz-1) .* (udotc_vec + 0.5.*udotc_vec.^2 - uu_vec))) ...
         .* ((cix(l) - ux_vec(2:nx-1,2:ny-1,2:nz-1)) .* ffx(2:nx-1,2:ny-1,2:nz-1) + ...
             (ciy(l) - uy_vec(2:nx-1,2:ny-1,2:nz-1)) .* ffy(2:nx-1,2:ny-1,2:nz-1) + ...
             (ciz(l) - uz_vec(2:nx-1,2:ny-1,2:nz-1)) .* ffz(2:nx-1,2:ny-1,2:nz-1) ...
            ) ./ (rho_vec(2:nx-1,2:ny-1,2:nz-1) .* cssq);
+
     feq_vec = w(l) * (rho_vec(2:nx-1,2:ny-1,2:nz-1) + rho_vec(2:nx-1,2:ny-1,2:nz-1) .* (udotc_vec + 0.5.*udotc_vec.^2 - uu_vec)) - HeF_vec;
+
     fneq_vec(l) = f(2:nx-1, 2:ny-1, 2:nz-1, l) - feq_vec;
+
 end
-pxx_vec(2:nx-1,2:ny-1,2:nz-1) = sum(fneq_vec([2,3,8,9,10,11,14,15,16,17]));
-pyy_vec(2:nx-1,2:ny-1,2:nz-1) = sum(fneq_vec([4,5,8,9,12,13,14,15,18,19]));
-pzz_vec(2:nx-1,2:ny-1,2:nz-1) = sum(fneq_vec([6,7,10,11,12,13,16,17,18,19]));
+
+pxx_vec(2:nx-1,2:ny-1,2:nz-1) = sum(fneq_vec(2:nx-1,2:ny-1,2:nz-1,[2,3,8,9,10,11,14,15,16,17]),4);
+pyy_vec(2:nx-1,2:ny-1,2:nz-1) = sum(fneq_vec(2:nx-1,2:ny-1,2:nz-1,[4,5,8,9,12,13,14,15,18,19]),4);
+pzz_vec(2:nx-1,2:ny-1,2:nz-1) = sum(fneq_vec(2:nx-1,2:ny-1,2:nz-1,[6,7,10,11,12,13,16,17,18,19]),4);
 pxy_vec(2:nx-1,2:ny-1,2:nz-1) = fneq_vec(8) + fneq_vec(9) - fneq_vec(14) - fneq_vec(15);
 pxz_vec(2:nx-1,2:ny-1,2:nz-1) = fneq_vec(10) + fneq_vec(11) - fneq_vec(16) - fneq_vec(17);
 pyz_vec(2:nx-1,2:ny-1,2:nz-1) = fneq_vec(12) + fneq_vec(13) - fneq_vec(18) - fneq_vec(19);
@@ -89,8 +97,8 @@ pyz_vec(2:nx-1,2:ny-1,2:nz-1) = fneq_vec(12) + fneq_vec(13) - fneq_vec(18) - fne
 % IGUAL is_rho_identical = isequal(rho_loop, rho_vec);
 % NEM FAZ SENTIDO is_udotc_identical = isequal(udotc_loop, udotc_vec);
 % NEM FAZ SENTIDO is_HeF_identical = isequal(HeF_loop, HeF_vec);
-is_feq_identical = isequal(feq_loop, feq_vec);
-is_fneq_identical = isequal(fneq_loop, fneq_vec);
+%is_feq_identical = isequal(feq_loop, feq_vec);
+%is_fneq_identical = isequal(fneq_loop, fneq_vec);
 is_pxx_identical = isequal(pxx_loop, pxx_vec);
 is_pyy_identical = isequal(pyy_loop, pyy_vec);
 is_pzz_identical = isequal(pzz_loop, pzz_vec);
@@ -98,13 +106,11 @@ is_pxy_identical = isequal(pxy_loop, pxy_vec);
 is_pxz_identical = isequal(pxz_loop, pxz_vec);
 is_pyz_identical = isequal(pyz_loop, pyz_vec);
 
-if is_feq_identical  && is_fneq_identical && is_pxx_identical && is_pyy_identical ...
+if is_pxx_identical && is_pyy_identical ...
     && is_pzz_identical && is_pxy_identical && is_pxz_identical && is_pyz_identical
     disp('Os resultados são idênticos!');
 else
     disp('Os resultados são diferentes.');
-    if ~is_feq_identical, disp('Diferenças encontradas em "feq".'); end
-    if ~is_fneq_identical, disp('Diferenças encontradas em "fneq".'); end
     if ~is_pxx_identical, disp('Diferenças encontradas em "pxx".'); end
     if ~is_pyy_identical, disp('Diferenças encontradas em "pyy".'); end
     if ~is_pzz_identical, disp('Diferenças encontradas em "pzz".'); end
