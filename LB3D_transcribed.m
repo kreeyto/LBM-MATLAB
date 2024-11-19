@@ -1,7 +1,6 @@
 %% D3Q19 
 clc; clearvars; close all
 %% Parâmetros Gerais
-tic
 % campo de velocidade do campo de fase
 pf = "D3Q15";
 
@@ -12,7 +11,7 @@ omega = 1/tau;
 sharp_c = 0.1;
 sigma = 0.024;
 
-[nx, ny, nz] = deal(65);
+[nx, ny, nz] = deal(64);
 nsteps = 10000; 
 
 fpoints = 19; 
@@ -70,14 +69,11 @@ ciz = [0, 0, 0, 0, 0, 1, -1, 0, 0, 1, -1, 1, -1, 0, 0, -1, 1, -1, 1];
 
 %% Cálculo da Função de Distribuição em Função da Distância Radial
 
+nx2 = nx/2; ny2 = ny/2; nz2 = nz/2; 
 for i = 2:nx-1
     for j = 2:ny-1
         for k = 2:nz-1
-            Ri = sqrt( ...
-                    (i-(nx/2))^2 + ...
-                    (j-(ny/2))^2 + ...
-                    (k-(nz/2))^2 ...
-                );
+            Ri = sqrt((i-nx2)^2 + (j-ny2)^2 + (k-nz2)^2);
             phi(i,j,k) = 0.5 + 0.5 * tanh(2*(20-Ri)/3);
         end
     end
@@ -106,52 +102,33 @@ end
 for t = 1:nsteps
 
     % Campo de fase
-    for i = 2:nx-1
-        for j = 2:ny-1
-            for k = 2:nz-1
-                phi(i,j,k) = sum(g(i,j,k,:),4);
-            end
-        end
-    end
+    phi(2:nx-1,2:ny-1,2:nz-1) = sum(g(2:nx-1,2:ny-1,2:nz-1,:),4);
 
     % Normal e arrays
-    for i = 2:nx-1
-        for j = 2:ny-1
-            for k = 2:nz-1
-                [grad_fix, grad_fiy, grad_fiz] = deal(0);
-                for l = 1:fpoints
-                    grad_fix = grad_fix + 3 * w(l) .* cix(l) .* ((phi(i+cix(l),j+ciy(l),k+ciz(l))));
-                    grad_fiy = grad_fiy + 3 * w(l) .* ciy(l) .* ((phi(i+cix(l),j+ciy(l),k+ciz(l))));
-                    grad_fiz = grad_fiz + 3 * w(l) .* ciz(l) .* ((phi(i+cix(l),j+ciy(l),k+ciz(l))));
-                end
-                mod_grad(i,j,k) = sqrt(grad_fix.^2 + grad_fiy.^2 + grad_fiz.^2);
-                normx(i,j,k) = grad_fix ./ (mod_grad(i,j,k) + 1e-9);
-                normy(i,j,k) = grad_fiy ./ (mod_grad(i,j,k) + 1e-9);
-                normz(i,j,k) = grad_fiz ./ (mod_grad(i,j,k) + 1e-9);
-                indicator(i,j,k) = sqrt(grad_fix.^2 + grad_fiy.^2 + grad_fiz.^2);
-            end
-        end
+    [grad_fix, grad_fiy, grad_fiz] = deal(0);
+    for l = 1:fpoints
+        grad_fix = grad_fix + 3 * w(l) .* cix(l) .* ((phi((2:nx-1)+cix(l),(2:ny-1)+ciy(l),(2:nz-1)+ciz(l))));
+        grad_fiy = grad_fiy + 3 * w(l) .* ciy(l) .* ((phi((2:nx-1)+cix(l),(2:ny-1)+ciy(l),(2:nz-1)+ciz(l))));
+        grad_fiz = grad_fiz + 3 * w(l) .* ciz(l) .* ((phi((2:nx-1)+cix(l),(2:ny-1)+ciy(l),(2:nz-1)+ciz(l))));
     end
+    mod_grad(2:nx-1,2:ny-1,2:nz-1) = sqrt(grad_fix.^2 + grad_fiy.^2 + grad_fiz.^2);
+    normx(2:nx-1,2:ny-1,2:nz-1) = grad_fix ./ (mod_grad(2:nx-1,2:ny-1,2:nz-1) + 1e-9);
+    normy(2:nx-1,2:ny-1,2:nz-1) = grad_fiy ./ (mod_grad(2:nx-1,2:ny-1,2:nz-1) + 1e-9);
+    normz(2:nx-1,2:ny-1,2:nz-1) = grad_fiz ./ (mod_grad(2:nx-1,2:ny-1,2:nz-1) + 1e-9);
+    indicator(2:nx-1,2:ny-1,2:nz-1) = sqrt(grad_fix.^2 + grad_fiy.^2 + grad_fiz.^2);
 
     % Curvatura
-    
-    for i = 2:nx-1
-        for j = 2:ny-1
-            for k = 2:nz-1
-                curvature(i,j,k) = 0;
-                for l = 1:fpoints
-                    curvature(i,j,k) = curvature(i,j,k) - 3 .* w(l) .* ...
-                    (cix(l) .* (normx(i+cix(l),j+ciy(l),k+ciz(l))) + ...
-                     ciy(l) .* (normy(i+cix(l),j+ciy(l),k+ciz(l))) + ...
-                     ciz(l) .* (normz(i+cix(l),j+ciy(l),k+ciz(l))) ...
-                    );
-                end
-                ffx(i,j,k) = sigma .* curvature(i,j,k) .* normx(i,j,k) .* indicator(i,j,k);
-                ffy(i,j,k) = sigma .* curvature(i,j,k) .* normy(i,j,k) .* indicator(i,j,k);
-                ffz(i,j,k) = sigma .* curvature(i,j,k) .* normz(i,j,k) .* indicator(i,j,k);
-            end
-        end
+    curvature(2:nx-1,2:ny-1,2:nz-1) = 0;
+    for l = 1:fpoints
+        curvature(2:nx-1,2:ny-1,2:nz-1) = curvature(2:nx-1,2:ny-1,2:nz-1) - 3 .* w(l) .* ...
+        (cix(l) .* (normx((2:nx-1)+cix(l),(2:ny-1)+ciy(l),(2:nz-1)+ciz(l))) + ...
+         ciy(l) .* (normy((2:nx-1)+cix(l),(2:ny-1)+ciy(l),(2:nz-1)+ciz(l))) + ...
+         ciz(l) .* (normz((2:nx-1)+cix(l),(2:ny-1)+ciy(l),(2:nz-1)+ciz(l))) ...
+        );
     end
+    ffx(2:nx-1,2:ny-1,2:nz-1) = sigma .* curvature(2:nx-1,2:ny-1,2:nz-1) .* normx(2:nx-1,2:ny-1,2:nz-1) .* indicator(2:nx-1,2:ny-1,2:nz-1);
+    ffy(2:nx-1,2:ny-1,2:nz-1) = sigma .* curvature(2:nx-1,2:ny-1,2:nz-1) .* normy(2:nx-1,2:ny-1,2:nz-1) .* indicator(2:nx-1,2:ny-1,2:nz-1);
+    ffz(2:nx-1,2:ny-1,2:nz-1) = sigma .* curvature(2:nx-1,2:ny-1,2:nz-1) .* normz(2:nx-1,2:ny-1,2:nz-1) .* indicator(2:nx-1,2:ny-1,2:nz-1);
 
     % Momentos
     for i = 2:nx-1
@@ -262,7 +239,6 @@ for t = 1:nsteps
     disp(['Passo de tempo: ', num2str(t)]);
 
 end
-toc
 
 
 
