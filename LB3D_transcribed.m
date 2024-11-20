@@ -74,6 +74,7 @@ for i = 2:nx-1
     for j = 2:ny-1
         for k = 2:nz-1
             Ri = sqrt((i-nx2)^2 + (j-ny2)^2 + (k-nz2)^2);
+            % phi = 0.5 + 0.5 * tanh((2*gamma(x))/W) with W being the interface width
             phi(i,j,k) = 0.5 + 0.5 * tanh(2*(20-Ri)/3);
         end
     end
