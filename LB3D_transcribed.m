@@ -2,7 +2,7 @@
 clc; clearvars; close all
 %% Parâmetros Gerais
 % campo de velocidade do campo de fase
-pf = "D3Q7";
+pf = "D3Q15";
 
 slicebool = 1;
 tau = 0.505;
@@ -11,7 +11,7 @@ omega = 1/tau;
 sharp_c = 0.15*3;
 sigma = 0.1;
 
-[nx, ny, nz] = deal(64);
+[nx, ny, nz] = deal(150);
 nsteps = 10000; 
 
 fpoints = 19; 
@@ -73,8 +73,10 @@ nx2 = nx/2; ny2 = ny/2; nz2 = nz/2;
 for i = 2:nx-1
     for j = 2:ny-1
         for k = 2:nz-1
-            Ri = sqrt((i-nx2)^2 + (j-ny2)^2 + (k-nz2)^2);
-            % phi = 0.5 + 0.5 * tanh((2*gamma(x))/W) with W being the interface width and gamma(x) the coordinate perpendicular to the interface
+            Ri = sqrt((i-nx2)^2/2.^2 + (j-ny2)^2 + (k-nz2)^2);
+            % phi = 0.5 + 0.5 * tanh((2*gamma(x))/W) 
+            % with W being the interface width 
+            % and gamma(x) the coordinate perpendicular to the interface
             phi(i,j,k) = 0.5 + 0.5 * tanh(2*(20-Ri)/3);
         end
     end
@@ -226,7 +228,7 @@ for t = 1:nsteps
     if(mod(t,1) == 0)      
         if slicebool == 1
             x = 1:nx; y = 1:ny; z = 1:nz;
-            h = slice(x, y, z, phi, [], ny/2, []); 
+            h = slice(x, y, z, phi, nx/2, [], []); 
             shading interp; colorbar; 
             xlabel('X'); ylabel('Y'); zlabel('Z'); 
             title(['t = ', num2str(t)]);
