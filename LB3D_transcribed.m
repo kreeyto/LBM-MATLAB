@@ -3,6 +3,7 @@ clc; clearvars; close all
 %% Parâmetros Gerais
 % campo de velocidade do campo de fase
 pf = "D3Q15";
+actingForces = 1;
 
 slicebool = 1;
 tau = 0.505;
@@ -11,7 +12,10 @@ omega = 1/tau;
 sharp_c = 0.15*3;
 sigma = 0.1;
 
-[nx, ny, nz] = deal(150);
+radius = 20;
+res = 0.4;
+
+[nx, ny, nz] = deal(150*res);
 nsteps = 10000; 
 
 fpoints = 19; 
@@ -73,11 +77,15 @@ nx2 = nx/2; ny2 = ny/2; nz2 = nz/2;
 for i = 2:nx-1
     for j = 2:ny-1
         for k = 2:nz-1
-            Ri = sqrt((i-nx2)^2/2.^2 + (j-ny2)^2 + (k-nz2)^2);
+            if actingForces == 1
+                Ri = sqrt((i-nx2)^2/2.^2 + (j-ny2)^2 + (k-nz2)^2);
+            else
+                Ri = sqrt((i-nx2)^2 + (j-ny2)^2 + (k-nz2)^2);
+            end
             % phi = 0.5 + 0.5 * tanh((2*gamma(x))/W) 
             % with W being the interface width 
             % and gamma(x) the coordinate perpendicular to the interface
-            phi(i,j,k) = 0.5 + 0.5 * tanh(2*(20-Ri)/3);
+            phi(i,j,k) = 0.5 + 0.5 * tanh(2*(radius*res-Ri)/(3*res));
         end
     end
 end
@@ -118,41 +126,52 @@ for t = 1:nsteps
     normx(2:nx-1,2:ny-1,2:nz-1) = grad_fix ./ (mod_grad(2:nx-1,2:ny-1,2:nz-1) + 1e-9);
     normy(2:nx-1,2:ny-1,2:nz-1) = grad_fiy ./ (mod_grad(2:nx-1,2:ny-1,2:nz-1) + 1e-9);
     normz(2:nx-1,2:ny-1,2:nz-1) = grad_fiz ./ (mod_grad(2:nx-1,2:ny-1,2:nz-1) + 1e-9);
-    indicator(2:nx-1,2:ny-1,2:nz-1) = sqrt(grad_fix.^2 + grad_fiy.^2 + grad_fiz.^2);
-
-    % Curvatura
-    curvature(2:nx-1,2:ny-1,2:nz-1) = 0;
-    for l = 1:fpoints
-        curvature(2:nx-1,2:ny-1,2:nz-1) = curvature(2:nx-1,2:ny-1,2:nz-1) - 3 .* w(l) .* ...
-        (cix(l) .* (normx((2:nx-1)+cix(l),(2:ny-1)+ciy(l),(2:nz-1)+ciz(l))) + ...
-         ciy(l) .* (normy((2:nx-1)+cix(l),(2:ny-1)+ciy(l),(2:nz-1)+ciz(l))) + ...
-         ciz(l) .* (normz((2:nx-1)+cix(l),(2:ny-1)+ciy(l),(2:nz-1)+ciz(l))) ...
-        );
+    if actingForces == 1
+        indicator(2:nx-1,2:ny-1,2:nz-1) = sqrt(grad_fix.^2 + grad_fiy.^2 + grad_fiz.^2);
+        % Curvatura
+        curvature(2:nx-1,2:ny-1,2:nz-1) = 0;
+        for l = 1:fpoints
+            curvature(2:nx-1,2:ny-1,2:nz-1) = curvature(2:nx-1,2:ny-1,2:nz-1) - 3 .* w(l) .* ...
+            (cix(l) .* (normx((2:nx-1)+cix(l),(2:ny-1)+ciy(l),(2:nz-1)+ciz(l))) + ...
+             ciy(l) .* (normy((2:nx-1)+cix(l),(2:ny-1)+ciy(l),(2:nz-1)+ciz(l))) + ...
+             ciz(l) .* (normz((2:nx-1)+cix(l),(2:ny-1)+ciy(l),(2:nz-1)+ciz(l))) ...
+            );
+        end
+        ffx(2:nx-1,2:ny-1,2:nz-1) = sigma .* curvature(2:nx-1,2:ny-1,2:nz-1) .* normx(2:nx-1,2:ny-1,2:nz-1) .* indicator(2:nx-1,2:ny-1,2:nz-1);
+        ffy(2:nx-1,2:ny-1,2:nz-1) = sigma .* curvature(2:nx-1,2:ny-1,2:nz-1) .* normy(2:nx-1,2:ny-1,2:nz-1) .* indicator(2:nx-1,2:ny-1,2:nz-1);
+        ffz(2:nx-1,2:ny-1,2:nz-1) = sigma .* curvature(2:nx-1,2:ny-1,2:nz-1) .* normz(2:nx-1,2:ny-1,2:nz-1) .* indicator(2:nx-1,2:ny-1,2:nz-1);
+    else
+        [ffx(2:nx-1,2:ny-1,2:nz-1), ffy(2:nx-1,2:ny-1,2:nz-1), ffz(2:nx-1,2:ny-1,2:nz-1)] = deal(0);
     end
-    ffx(2:nx-1,2:ny-1,2:nz-1) = sigma .* curvature(2:nx-1,2:ny-1,2:nz-1) .* normx(2:nx-1,2:ny-1,2:nz-1) .* indicator(2:nx-1,2:ny-1,2:nz-1);
-    ffy(2:nx-1,2:ny-1,2:nz-1) = sigma .* curvature(2:nx-1,2:ny-1,2:nz-1) .* normy(2:nx-1,2:ny-1,2:nz-1) .* indicator(2:nx-1,2:ny-1,2:nz-1);
-    ffz(2:nx-1,2:ny-1,2:nz-1) = sigma .* curvature(2:nx-1,2:ny-1,2:nz-1) .* normz(2:nx-1,2:ny-1,2:nz-1) .* indicator(2:nx-1,2:ny-1,2:nz-1);
 
     % Momentos
     for i = 2:nx-1
         for j = 2:ny-1
             for k = 2:nz-1
-                ux(i,j,k) = sum(f(i,j,k,[2,16,10,8,14])) - sum(f(i,j,k,[3,11,17,15,8]));
-                uy(i,j,k) = sum(f(i,j,k,[4,8,15,18,12])) - sum(f(i,j,k,[5,14,9,13,19]));
-                uz(i,j,k) = sum(f(i,j,k,[7,16,11,18,13])) - sum(f(i,j,k,[6,10,17,12,19]));
-                ux(i,j,k) = ux(i,j,k) ./ rho(i,j,k) + ffx(i,j,k) * 0.5 ./ rho(i,j,k);
-                uy(i,j,k) = uy(i,j,k) ./ rho(i,j,k) + ffy(i,j,k) * 0.5 ./ rho(i,j,k);
-                uz(i,j,k) = uz(i,j,k) ./ rho(i,j,k) + ffz(i,j,k) * 0.5 ./ rho(i,j,k);
+                if actingForces == 1
+                    ux(i,j,k) = sum(f(i,j,k,[2,16,10,8,14])) - sum(f(i,j,k,[3,11,17,15,8]));
+                    uy(i,j,k) = sum(f(i,j,k,[4,8,15,18,12])) - sum(f(i,j,k,[5,14,9,13,19]));
+                    uz(i,j,k) = sum(f(i,j,k,[7,16,11,18,13])) - sum(f(i,j,k,[6,10,17,12,19]));
+                    ux(i,j,k) = ux(i,j,k) ./ rho(i,j,k) + ffx(i,j,k) * 0.5 ./ rho(i,j,k);
+                    uy(i,j,k) = uy(i,j,k) ./ rho(i,j,k) + ffy(i,j,k) * 0.5 ./ rho(i,j,k);
+                    uz(i,j,k) = uz(i,j,k) ./ rho(i,j,k) + ffz(i,j,k) * 0.5 ./ rho(i,j,k);
+                else
+                    [ux(i,j,k), uy(i,j,k), uz(i,j,k)] = deal(0);
+                end
                 uu = 0.5 * (ux(i,j,k).^2 + uy(i,j,k).^2 + uz(i,j,k).^2) / cssq;
                 rho(i,j,k) = sum(f(i,j,k,:),4);
                 for l = 1:fpoints
                     udotc = (ux(i,j,k) * cix(l) + uy(i,j,k) * ciy(l) + uz(i,j,k) * ciz(l)) / cssq;
-                    HeF = 0.5 .* (w(l) * (rho(i,j,k) + rho(i,j,k) .* (udotc + 0.5.*udotc.^2 - uu))) ...
-                        .* ((cix(l) - ux(i,j,k)) .* ffx(i,j,k) + ...
-                            (ciy(l) - uy(i,j,k)) .* ffy(i,j,k) + ...
-                            (ciz(l) - uz(i,j,k)) .* ffz(i,j,k) ...
-                           ) ./ (rho(i,j,k) .* cssq);
-                    feq = w(l) * (rho(i,j,k) + rho(i,j,k) .* (udotc + 0.5.*udotc.^2 - uu)) - HeF;
+                    if actingForces == 1
+                        HeF = (w(l) * (rho(i,j,k) + rho(i,j,k) .* (udotc + 0.5.*udotc.^2 - uu))) ...
+                            .* ((cix(l) - ux(i,j,k)) .* ffx(i,j,k) + ...
+                                (ciy(l) - uy(i,j,k)) .* ffy(i,j,k) + ...
+                                (ciz(l) - uz(i,j,k)) .* ffz(i,j,k) ...
+                               ) ./ (rho(i,j,k) .* cssq);
+                        feq = w(l) * (rho(i,j,k) + rho(i,j,k) .* (udotc + 0.5.*udotc.^2 - uu)) - 0.5 .* HeF;
+                    else
+                        feq = w(l) * (rho(i,j,k) + rho(i,j,k) .* (udotc + 0.5.*udotc.^2 - uu));
+                    end
                     fneq(l) = f(i,j,k,l) - feq;
                 end
                 pxx(i,j,k) = sum(fneq([2,3,8,9,10,11,14,15,16,17]));
@@ -173,18 +192,24 @@ for t = 1:nsteps
                 for l = 1:fpoints
                     udotc = (ux(i,j,k) * cix(l) + uy(i,j,k) * ciy(l) + uz(i,j,k) * ciz(l)) / cssq;
                     feq = w(l) * (rho(i,j,k) + rho(i,j,k) .* (udotc + 0.5.*udotc.^2 - uu));
-                    HeF = 0.5 .* (w(l) * (rho(i,j,k) + rho(i,j,k) .* (udotc + 0.5.*udotc.^2 - uu))) .* ...
-                        ((cix(l) - ux(i,j,k)) .* ffx(i,j,k) + ...
-                         (ciy(l) - uy(i,j,k)) .* ffy(i,j,k) + ...
-                         (ciz(l) - uz(i,j,k)) .* ffz(i,j,k) ...
-                        ) ./ (rho(i,j,k) .* cssq);
+                    if actingForces == 1
+                        HeF = 0.5 .* (w(l) * (rho(i,j,k) + rho(i,j,k) .* (udotc + 0.5.*udotc.^2 - uu))) .* ...
+                            ((cix(l) - ux(i,j,k)) .* ffx(i,j,k) + ...
+                             (ciy(l) - uy(i,j,k)) .* ffy(i,j,k) + ...
+                             (ciz(l) - uz(i,j,k)) .* ffz(i,j,k) ...
+                            ) ./ (rho(i,j,k) .* cssq);
+                    end
                     fneq = (cix(l) .* cix(l) - cssq) * pxx(i,j,k) + ...
                            (ciy(l) .* ciy(l) - cssq) * pyy(i,j,k) + ...
                            (ciz(l) .* ciz(l) - cssq) * pzz(i,j,k) + ...
                            2 * cix(l) .* ciy(l) .* pxy(i,j,k) + ...
                            2 * cix(l) .* ciz(l) .* pxz(i,j,k) + ...
                            2 * ciy(l) .* ciz(l) .* pyz(i,j,k);
-                    f(i+cix(l),j+ciy(l),k+ciz(l),l) = feq + (1-omega) * (w(l) / (2*cssq^2)) * fneq + HeF;
+                    if actingForces == 1
+                        f(i+cix(l),j+ciy(l),k+ciz(l),l) = feq + (1-omega) * (w(l) / (2*cssq^2)) * fneq + HeF;
+                    else
+                        f(i+cix(l),j+ciy(l),k+ciz(l),l) = feq + (1-omega) * (w(l) / (2*cssq^2)) * fneq;
+                    end
                 end
                 for l = 1:gpoints
                     udotc = (ux(i,j,k) * cix(l) + uy(i,j,k) * ciy(l) + uz(i,j,k) * ciz(l)) / cssq;
