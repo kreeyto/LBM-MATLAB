@@ -8,6 +8,7 @@ pfvs = "D3Q15";
 
 % vis mode
 slicebool = 1;
+simslice = 0;
 
 tau = 0.505;
 cssq = 1/3;
@@ -17,7 +18,7 @@ sigma = 0.1;
 stamp = 1;
 
 radius = 20;
-res = 0.2;
+res = 0.5;
 
 [nx, ny, nz] = deal(150*res);
 nsteps = 10000; 
@@ -36,7 +37,6 @@ g = zeros(nx,ny,nz,gpoints);
 %% index pre-alloc
 
 ix = 2:nx-1; iy = 2:ny-1; iz = 2:nz-1;
-lix = [1,nx]; liy = [1,ny]; liz = [1,nz];
 
 %% arrays and variables
 
@@ -79,7 +79,7 @@ cix = [0, 1, -1, 0, 0, 0, 0, 1, -1, 1, -1, 0, 0, 1, -1, 1, -1, 0, 0];
 ciy = [0, 0, 0, 1, -1, 0, 0, 1, -1, 0, 0, 1, -1, -1, 1, 0, 0, 1, -1];
 ciz = [0, 0, 0, 0, 0, 1, -1, 0, 0, 1, -1, 1, -1, 0, 0, -1, 1, -1, 1];
 
-%% phase field initi
+%% phase field init
 
 nx2 = nx/2; ny2 = ny/2; nz2 = nz/2; 
 for i = ix
@@ -146,27 +146,33 @@ for t = 1:nsteps
     for i = ix
         for j = iy
             for k = iz
-                ux(i,j,k) = sum(f(i,j,k,[2,16,10,8,14])) - sum(f(i,j,k,[3,11,17,15,8]));
-                uy(i,j,k) = sum(f(i,j,k,[4,8,15,18,12])) - sum(f(i,j,k,[5,14,9,13,19]));
-                uz(i,j,k) = sum(f(i,j,k,[7,16,11,18,13])) - sum(f(i,j,k,[6,10,17,12,19]));
-                ux(i,j,k) = ux(i,j,k) ./ rho(i,j,k) + ffx(i,j,k) * 0.5 ./ rho(i,j,k);
-                uy(i,j,k) = uy(i,j,k) ./ rho(i,j,k) + ffy(i,j,k) * 0.5 ./ rho(i,j,k);
-                uz(i,j,k) = uz(i,j,k) ./ rho(i,j,k) + ffz(i,j,k) * 0.5 ./ rho(i,j,k);
+                ux(i,j,k) = ( ...
+                    (f(i,j,k,2) + f(i,j,k,16) + f(i,j,k,10) + f(i,j,k,8) + f(i,j,k,14)) - ...
+                    (f(i,j,k,3) + f(i,j,k,11) + f(i,j,k,17) + f(i,j,k,15) + f(i,j,k,8)) ...
+                ) ./ rho(i,j,k) + ffx(i,j,k) * 0.5 ./ rho(i,j,k);
+                uy(i,j,k) = ( ...
+                    (f(i,j,k,4) + f(i,j,k,8) + f(i,j,k,15) + f(i,j,k,18) + f(i,j,k,12)) - ...
+                    (f(i,j,k,5) + f(i,j,k,14) + f(i,j,k,9) + f(i,j,k,13) + f(i,j,k,19)) ...
+                ) ./ rho(i,j,k) + ffy(i,j,k) * 0.5 ./ rho(i,j,k);
+                uy(i,j,k) = ( ...
+                    (f(i,j,k,7) + f(i,j,k,16) + f(i,j,k,11) + f(i,j,k,18) + f(i,j,k,13)) - ...
+                    (f(i,j,k,6) + f(i,j,k,10) + f(i,j,k,17) + f(i,j,k,12) + f(i,j,k,19)) ...
+                ) ./ rho(i,j,k) + ffz(i,j,k) * 0.5 ./ rho(i,j,k);
                 uu = 0.5 * (ux(i,j,k).^2 + uy(i,j,k).^2 + uz(i,j,k).^2) / cssq;
                 rho(i,j,k) = sum(f(i,j,k,:),4);
                 for l = 1:fpoints
                     udotc = (ux(i,j,k) * cix(l) + uy(i,j,k) * ciy(l) + uz(i,j,k) * ciz(l)) / cssq;
                     HeF = (w(l) * (rho(i,j,k) + rho(i,j,k) .* (udotc + 0.5.*udotc.^2 - uu))) ...
                         .* ((cix(l) - ux(i,j,k)) .* ffx(i,j,k) + ...
-                            (ciy(l) - uy(i,j,k)) .* ffy(i,j,k) + ...
+                            (ciy(l) -  uy(i,j,k)) .* ffy(i,j,k) + ...
                             (ciz(l) - uz(i,j,k)) .* ffz(i,j,k) ...
                            ) ./ (rho(i,j,k) .* cssq);
                     feq = w(l) * (rho(i,j,k) + rho(i,j,k) .* (udotc + 0.5.*udotc.^2 - uu)) - 0.5 .* HeF;
                     fneq(l) = f(i,j,k,l) - feq;
                 end
-                pxx(i,j,k) = sum(fneq([2,3,8,9,10,11,14,15,16,17]));
-                pyy(i,j,k) = sum(fneq([4,5,8,9,12,13,14,15,18,19]));
-                pzz(i,j,k) = sum(fneq([6,7,10,11,12,13,16,17,18,19]));
+                pxx(i,j,k) = fneq(2) + fneq(3) + fneq(8) + fneq(9) + fneq(10) + fneq(11) + fneq(14) + fneq(15) + fneq(16) + fneq(17);
+                pyy(i,j,k) = fneq(4) + fneq(5) + fneq(8) + fneq(9) + fneq(12) + fneq(13) + fneq(14) + fneq(15) + fneq(18) + fneq(19);
+                pzz(i,j,k) = fneq(6) + fneq(7) + fneq(10) + fneq(11) + fneq(12) + fneq(13) + fneq(16) + fneq(17) + fneq(18) + fneq(19);
                 pxy(i,j,k) = fneq(8) + fneq(9) - fneq(14) - fneq(15);
                 pxz(i,j,k) = fneq(10) + fneq(11) - fneq(16) - fneq(17);
                 pyz(i,j,k) = fneq(12) + fneq(13) - fneq(18) - fneq(19);
@@ -236,16 +242,23 @@ for t = 1:nsteps
 
     if(mod(t,stamp) == 0)      
         if slicebool == 1
-            x = 1:nx; y = 1:ny; z = 1:nz;
-            h = slice(x, y, z, phi, nx/2, [], []); 
-            shading interp; colorbar; 
-            xlabel('x'); ylabel('y'); zlabel('z'); 
-            title(['t = ', num2str(t)]);
-            drawnow;
+            if simslice ~= 1
+                x = 1:nx; y = 1:ny; z = 1:nz;
+                h = slice(x, y, z, phi, nx/2, [], []); 
+                shading interp; colorbar; axis tight; 
+                xlabel('$x$'); ylabel('$y$'); zlabel('$z$'); 
+                title(['t = ', num2str(t)]);
+            else
+                phislice(:,:) = phi(ix, iy, iz);
+                imagesc(ix, iz, phislice'); colorbar;
+                title(['t = ', num2str(t)]);
+                xlabel('$z$'); ylabel('$y$');
+                axis equal tight; 
+            end
         else
             hVol.Data = phi; 
-            drawnow;
         end
+        drawnow;
     end
 
     disp(['tstep = ', num2str(t)]);

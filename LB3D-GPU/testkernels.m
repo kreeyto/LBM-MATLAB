@@ -113,15 +113,86 @@ end
 k = parallel.gpu.CUDAKernel('myKernel.ptx', 'myKernel.cu', 'updatePhi');
 k.ThreadBlockSize = [8, 8, 8];
 k.GridSize = [ceil(nx/8), ceil(ny/8), ceil(nz/8)];
-phi_gpu = gpuArray(phi);
-g_gpu = gpuArray(g);
+
+% Alocação de variáveis na GPU
+rho_gpu = gpuArray(rho);
+ux_gpu = gpuArray(ux);
+uy_gpu = gpuArray(uy);
+uz_gpu = gpuArray(uz);
+ffx_gpu = gpuArray(ffx);
+ffy_gpu = gpuArray(ffy);
+ffz_gpu = gpuArray(ffz);
+f_gpu = gpuArray(f);
+pxx_gpu = gpuArray(pxx);
+pyy_gpu = gpuArray(pyy);
+pzz_gpu = gpuArray(pzz);
+pxy_gpu = gpuArray(pxy);
+pxz_gpu = gpuArray(pxz);
+pyz_gpu = gpuArray(pyz);
+cix_gpu = gpuArray(cix);
+ciy_gpu = gpuArray(ciy);
+ciz_gpu = gpuArray(ciz);
+w_gpu = gpuArray(w);
+
+% Constantes na GPU
+cssq_gpu = gpuArray(cssq);
+fpoints_gpu = gpuArray(fpoints);
+nx_gpu = gpuArray(nx);
+ny_gpu = gpuArray(ny);
+nz_gpu = gpuArray(nz);
 
 %% Loop de Simulação
 
 for t = 1:nsteps
 
-    phi_gpu = feval(k, phi_gpu, g_gpu, nx, ny, nz, gpoints);    
-    phi = gather(phi_gpu);
+    % phase field calc
+    phi(ix,iy,iz) = sum(g(ix,iy,iz,:),4);
+
+    % normal and arrays
+    [grad_fix, grad_fiy, grad_fiz] = deal(0);
+    for l = 1:fpoints
+        grad_fix = grad_fix + 3 * w(l) .* cix(l) .* ((phi((ix)+cix(l),(iy)+ciy(l),(iz)+ciz(l))));
+        grad_fiy = grad_fiy + 3 * w(l) .* ciy(l) .* ((phi((ix)+cix(l),(iy)+ciy(l),(iz)+ciz(l))));
+        grad_fiz = grad_fiz + 3 * w(l) .* ciz(l) .* ((phi((ix)+cix(l),(iy)+ciy(l),(iz)+ciz(l))));
+    end
+    mod_grad(ix,iy,iz) = sqrt(grad_fix.^2 + grad_fiy.^2 + grad_fiz.^2);
+    normx(ix,iy,iz) = grad_fix ./ (mod_grad(ix,iy,iz) + 1e-9);
+    normy(ix,iy,iz) = grad_fiy ./ (mod_grad(ix,iy,iz) + 1e-9);
+    normz(ix,iy,iz) = grad_fiz ./ (mod_grad(ix,iy,iz) + 1e-9);
+    indicator(ix,iy,iz) = sqrt(grad_fix.^2 + grad_fiy.^2 + grad_fiz.^2);
+
+    % curvature
+    curvature(ix,iy,iz) = 0;
+    for l = 1:fpoints
+        curvature(ix,iy,iz) = curvature(ix,iy,iz) - 3 .* w(l) .* ...
+        (cix(l) .* (normx((ix)+cix(l),(iy)+ciy(l),(iz)+ciz(l))) + ...
+         ciy(l) .* (normy((ix)+cix(l),(iy)+ciy(l),(iz)+ciz(l))) + ...
+         ciz(l) .* (normz((ix)+cix(l),(iy)+ciy(l),(iz)+ciz(l))) ...
+        );
+    end
+    ffx(ix,iy,iz) = sigma .* curvature(ix,iy,iz) .* normx(ix,iy,iz) .* indicator(ix,iy,iz);
+    ffy(ix,iy,iz) = sigma .* curvature(ix,iy,iz) .* normy(ix,iy,iz) .* indicator(ix,iy,iz);
+    ffz(ix,iy,iz) = sigma .* curvature(ix,iy,iz) .* normz(ix,iy,iz) .* indicator(ix,iy,iz);
+
+    % EXEMPLO FEVAL
+    [rho_gpu, ux_gpu, uy_gpu, uz_gpu, pxx_gpu, pyy_gpu, pzz_gpu, ...
+     pxy_gpu, pxz_gpu, pyz_gpu] = feval(kCollision, ...
+        rho_gpu, ux_gpu, uy_gpu, uz_gpu, ...
+        ffx_gpu, ffy_gpu, ffz_gpu, f_gpu, ...
+        pxx_gpu, pyy_gpu, pzz_gpu, pxy_gpu, ...
+        pxz_gpu, pyz_gpu, cix_gpu, ciy_gpu, ciz_gpu, ...
+        w_gpu, cssq_gpu, nx_gpu, ny_gpu, nz_gpu, fpoints_gpu);
+
+    rho = gather(rho_gpu);
+    ux = gather(ux_gpu);
+    uy = gather(uy_gpu);
+    uz = gather(uz_gpu);
+    pxx = gather(pxx_gpu);
+    pyy = gather(pyy_gpu);
+    pzz = gather(pzz_gpu);
+    pxy = gather(pxy_gpu);
+    pxz = gather(pxz_gpu);
+    pyz = gather(pyz_gpu);
 
 end
 
