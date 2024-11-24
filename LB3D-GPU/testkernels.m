@@ -3,14 +3,17 @@ clc; clearvars; close all
 % parameters
 
 radius = 20;
+tau = 0.505;
 cssq = gpuArray(1/3);
+omega = gpuArray(1/tau);
+sharp_c = gpuArray(0.15*3);
 sigma = 0.1;
 
 [nx, ny, nz] = deal(128);
 
 % kernels
 
-ker = parallel.gpu.CUDAKernel('myKernel.ptx', 'myKernel.cu', 'momCollision');
+ker = parallel.gpu.CUDAKernel('gpuMomCollision.ptx', 'gpuMomCollision.cu', 'momCollision');
 ker.ThreadBlockSize = [8, 8, 8];
 ker.GridSize = [ceil(nx/8), ceil(ny/8), ceil(nz/8)]; 
 
@@ -21,9 +24,9 @@ nx_gpu = gpuArray(nx); ny_gpu = gpuArray(ny); nz_gpu = gpuArray(nz);
 nsteps = 10000; 
 
 fpoints = gpuArray(19); 
-gpoints = 15;
+gpoints = gpuArray(15);
 f = zeros(nx,ny,nz,fpoints,'gpuArray'); 
-g = zeros(nx,ny,nz,gpoints); 
+g = zeros(nx,ny,nz,gpoints,'gpuArray'); 
 
 % index pre-alloc
 
@@ -32,16 +35,16 @@ ix = 2:nx-1; iy = 2:ny-1; iz = 2:nz-1;
 % arrays and variables
 
 [rho, ux, uy, uz, ...
- ffx, ffy, ffz] = deal(zeros(nx,ny,nz,'gpuArray'));
+ ffx, ffy, ffz, phi, ...
+ normx, normy, normz] = deal(zeros(nx,ny,nz,'gpuArray'));
 
-[phi, normx, normy, normz, ...
- curvature, indicator] = deal(zeros(nx,ny,nz));
+[curvature, indicator] = deal(zeros(nx,ny,nz));
 
 [pxx, pyy, pzz, ...
  pxy, pxz, pyz] = deal(ones(nx,ny,nz,'gpuArray'));
 
 w = zeros(1,fpoints,'gpuArray');
-w_g = zeros(1,gpoints);
+w_g = zeros(1,gpoints,'gpuArray');
 rho(:,:,:) = 1;
 
 % velocity set properties
@@ -112,11 +115,70 @@ ffx(ix,iy,iz) = sigma .* curvature(ix,iy,iz) .* normx(ix,iy,iz) .* indicator(ix,
 ffy(ix,iy,iz) = sigma .* curvature(ix,iy,iz) .* normy(ix,iy,iz) .* indicator(ix,iy,iz);
 ffz(ix,iy,iz) = sigma .* curvature(ix,iy,iz) .* normz(ix,iy,iz) .* indicator(ix,iy,iz);
 
+% gpuMomCollision
+output = []; % input desire variables
 output = feval(ker, ...
                rho, ux, uy, uz, ...
                ffx, ffy, ffz, f, ...
                nx_gpu, ny_gpu, nz_gpu, ...
                cssq, cix, ciy, ciz, w, ...
                pxx, pyy, pzz, pxy, pxz, pyz, ...
-               fpoints);
+               fpoints, ...
+               omega, sharp_c, w_g, phi, ...
+               normx, normy, normz, g, ...
+               gpoints);
+
+%% remaining
+
+for l = 1:gpoints
+    g(:,:,:,l) = circshift(g(:,:,:,l),[cix(l),ciy(l),ciz(l)]);
+end
+
+% boundary conditions
+for i = [1,nx]
+    for j = [1,ny]
+        for k = [1,nz]
+            for l = 1:fpoints
+                if (i+cix(l)>0 && j+ciy(l)>0 && k+ciz(l)>0)
+                    f(i+cix(l),j+ciy(l),k+ciz(l),l) = rho(i,j,k) .* w(l); 
+                end
+            end
+            for l = 1:gpoints
+                if (i+cix(l)>0 && j+ciy(l)>0 && k+ciz(l)>0)
+                    g(i+cix(l),j+ciy(l),k+ciz(l),l) = phi(i,j,k) .* w_g(l);
+                end
+            end
+        end
+    end
+end
+
+phi(:,:,1) = phi(:,:,2);  
+phi(:,:,nz) = phi(:,:,nz-1); 
+phi(1,:,:) = phi(2,:,:); 
+phi(nx,:,:) = phi(nx-1,:,:); 
+phi(:,1,:) = phi(:,2,:); 
+phi(:,ny,:) = phi(:,ny-1,:); 
+
+if(mod(t,stamp) == 0)      
+    if slicebool == 1
+        if simslice ~= 1
+            x = 1:nx; y = 1:ny; z = 1:nz;
+            h = slice(x, y, z, phi, nx/2, [], []); 
+            shading interp; colorbar; axis tight; 
+            xlabel('$x$'); ylabel('$y$'); zlabel('$z$'); 
+            title(['t = ', num2str(t)]);
+        else
+            phislice(:,:) = phi(ix, iy, iz);
+            imagesc(ix, iz, phislice'); colorbar;
+            title(['t = ', num2str(t)]);
+            xlabel('$z$'); ylabel('$y$');
+            axis equal tight; 
+        end
+    else
+        hVol.Data = phi; 
+    end
+    drawnow;
+end
+
+disp(['tstep = ', num2str(t)]);
 
