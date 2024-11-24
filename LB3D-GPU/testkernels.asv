@@ -3,7 +3,6 @@ clc; clearvars; close all
 % parameters
 
 radius = 20;
-cssq = gpuArray(1/3);
 sigma = 0.1;
 
 [nx, ny, nz] = deal(128);
@@ -20,7 +19,7 @@ nx_gpu = gpuArray(nx); ny_gpu = gpuArray(ny); nz_gpu = gpuArray(nz);
 
 nsteps = 10000; 
 
-fpoints = gpuArray(19); 
+fpoints = 19; 
 gpoints = 15;
 f = zeros(nx,ny,nz,fpoints,'gpuArray'); 
 g = zeros(nx,ny,nz,gpoints); 
@@ -37,10 +36,7 @@ ix = 2:nx-1; iy = 2:ny-1; iz = 2:nz-1;
 [phi, normx, normy, normz, ...
  curvature, indicator] = deal(zeros(nx,ny,nz));
 
-[pxx, pyy, pzz, ...
- pxy, pxz, pyz] = deal(ones(nx,ny,nz,'gpuArray'));
-
-w = zeros(1,fpoints,'gpuArray');
+w = zeros(1,fpoints);
 w_g = zeros(1,gpoints);
 rho(:,:,:) = 1;
 
@@ -54,9 +50,9 @@ w_g(1) = 2/9;
 w_g(2:7) = 1/9;
 w_g(8:15) = 1/72;
 
-cix = gpuArray([0, 1, -1, 0, 0, 0, 0, 1, -1, 1, -1, 0, 0, 1, -1, 1, -1, 0, 0]);
-ciy = gpuArray([0, 0, 0, 1, -1, 0, 0, 1, -1, 0, 0, 1, -1, -1, 1, 0, 0, 1, -1]);
-ciz = gpuArray([0, 0, 0, 0, 0, 1, -1, 0, 0, 1, -1, 1, -1, 0, 0, -1, 1, -1, 1]);
+cix = [0, 1, -1, 0, 0, 0, 0, 1, -1, 1, -1, 0, 0, 1, -1, 1, -1, 0, 0];
+ciy = [0, 0, 0, 1, -1, 0, 0, 1, -1, 0, 0, 1, -1, -1, 1, 0, 0, 1, -1];
+ciz = [0, 0, 0, 0, 0, 1, -1, 0, 0, 1, -1, 1, -1, 0, 0, -1, 1, -1, 1];
 
 % phase field init
 
@@ -112,11 +108,10 @@ ffx(ix,iy,iz) = sigma .* curvature(ix,iy,iz) .* normx(ix,iy,iz) .* indicator(ix,
 ffy(ix,iy,iz) = sigma .* curvature(ix,iy,iz) .* normy(ix,iy,iz) .* indicator(ix,iy,iz);
 ffz(ix,iy,iz) = sigma .* curvature(ix,iy,iz) .* normz(ix,iy,iz) .* indicator(ix,iy,iz);
 
-output = feval(ker, ...
-               rho, ux, uy, uz, ...
-               ffx, ffy, ffz, f, ...
-               nx_gpu, ny_gpu, nz_gpu, ...
-               cssq, cix, ciy, ciz, w, ...
-               pxx, pyy, pzz, pxy, pxz, pyz, ...
-               fpoints);
+[ux, uy, uz] = feval(ker, ...
+    rho, ux, uy, uz, ...
+    ffx, ffy, ffz, f, ...
+    nx_gpu, ny_gpu, nz_gpu ...
+    % novos
+    );
 

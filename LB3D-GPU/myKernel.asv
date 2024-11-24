@@ -16,9 +16,9 @@ __global__ void momCollision(
     int j = blockIdx.y * blockDim.y + threadIdx.y;
     int k = blockIdx.z * blockDim.z + threadIdx.z;
 
-    // moments
     if (i > 0 && i < nx-1 && j > 0 && j < ny-1 && k > 0 && k < nz-1) {
         int idx = i + nx * (j + ny * k);
+
         #define F_INDEX(i,j,k,q) ((i) + nx * ((j) + ny * ((k) + nz * (q))))
 
         ux[idx] = (
@@ -63,13 +63,6 @@ __global__ void momCollision(
         pxz[idx] = fneq[10] + fneq[11] - fneq[16] - fneq[17];
         pyz[idx] = fneq[12] + fneq[13] - fneq[18] - fneq[19];
 
-    }
-
-    // collision
-    if (i > 0 && i < nx-1 && j > 0 && j < ny-1 && k > 0 && k < nz-1) {
-        // code for collision
-        int idx = i + nx * (j + ny * k);
-        #define F_INDEX(i,j,k,q) ((i) + nx * ((j) + ny * ((k) + nz * (q))))
     }
 }
 
