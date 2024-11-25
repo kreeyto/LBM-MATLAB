@@ -28,10 +28,11 @@ __global__ void momCollision(
     int j = blockIdx.y * blockDim.y + threadIdx.y;
     int k = blockIdx.z * blockDim.z + threadIdx.z;
 
+    int idx = i + nx * (j + ny * k);
+    #define F_IDX(i,j,k,l) ((i) + nx * ((j) + ny * ((k) + nz * (l))))
+
     // moments
     if (i > 0 && i < nx-1 && j > 0 && j < ny-1 && k > 0 && k < nz-1) {
-        int idx = i + nx * (j + ny * k);
-        #define F_IDX(i,j,k,q) ((i) + nx * ((j) + ny * ((k) + nz * (q))))
 
         ux[idx] = (
             (f[F_IDX(i,j,k,1)] + f[F_IDX(i,j,k,15)] + f[F_IDX(i,j,k,9)] + f[F_IDX(i,j,k,7)] + f[F_IDX(i,j,k,13)]) -
@@ -50,7 +51,6 @@ __global__ void momCollision(
         ffz[idx] * 0.5 / rho[idx];
 
         double fneq[19];
-        
         double uu = 0.5 * (pow(ux[idx],2) + pow(uy[idx],2) + pow(uz[idx],2)) / cssq;
 
         for (int n = 0; n < fpoints; n++) { 
@@ -79,8 +79,6 @@ __global__ void momCollision(
 
     // collision
     if (i > 0 && i < nx-1 && j > 0 && j < ny-1 && k > 0 && k < nz-1) {
-        int idx = i + nx * (j + ny * k);
-        #define F_IDX(i,j,k,q) ((i) + nx * ((j) + ny * ((k) + nz * (q))))
 
         double uu = 0.5 * (pow(ux[idx],2) + pow(uy[idx],2) + pow(uz[idx],2)) / cssq;
 
