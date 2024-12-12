@@ -1,5 +1,6 @@
 % D3Q19 
 clc; clearvars; close all
+%figure('Position', [100 100 800 800]);
 
 %% parameters
 
@@ -7,8 +8,8 @@ clc; clearvars; close all
 pfvs = "D3Q15";
 
 % vis mode
-slicebool = 1;
-vid = 1;
+slicebool = 0;
+vid = 0;
 fr = 15;
 
 radius = 20;
@@ -22,7 +23,7 @@ sigma = 0.1;
 stamp = 1;
 
 [nx, ny, nz] = deal(150*res);
-nsteps = 54; 
+nsteps = 10000; 
 
 fpoints = 19; 
 if pfvs == "D3Q19"
@@ -267,12 +268,43 @@ for t = 1:nsteps
         end
     end
 
+    %{
     phi(:,:,1) = phi(:,:,2);  
     phi(:,:,nz) = phi(:,:,nz-1); 
     phi(1,:,:) = phi(2,:,:); 
     phi(nx,:,:) = phi(nx-1,:,:); 
     phi(:,1,:) = phi(:,2,:); 
     phi(:,ny,:) = phi(:,ny-1,:); 
+    %}
+
+    % Condições de contorno periódicas
+    phi(1,:,:) = phi(nx-1,:,:);        % X-min -> X-max
+    phi(nx,:,:) = phi(2,:,:);          % X-max -> X-min
+    phi(:,1,:) = phi(:,ny-1,:);        % Y-min -> Y-max
+    phi(:,ny,:) = phi(:,2,:);          % Y-max -> Y-min
+    phi(:,:,1) = phi(:,:,nz-1);        % Z-min -> Z-max
+    phi(:,:,nz) = phi(:,:,2);          % Z-max -> Z-min
+    
+    % Distribuição f
+    for l = 1:fpoints
+        f(1,:,:,l) = f(nx-1,:,:,l);        % X-min -> X-max
+        f(nx,:,:,l) = f(2,:,:,l);          % X-max -> X-min
+        f(:,1,:,l) = f(:,ny-1,:,l);        % Y-min -> Y-max
+        f(:,ny,:,l) = f(:,2,:,l);          % Y-max -> Y-min
+        f(:,:,1,l) = f(:,:,nz-1,l);        % Z-min -> Z-max
+        f(:,:,nz,l) = f(:,:,2,l);          % Z-max -> Z-min
+    end
+    
+    % Distribuição g
+    for l = 1:gpoints
+        g(1,:,:,l) = g(nx-1,:,:,l);        % X-min -> X-max
+        g(nx,:,:,l) = g(2,:,:,l);          % X-max -> X-min
+        g(:,1,:,l) = g(:,ny-1,:,l);        % Y-min -> Y-max
+        g(:,ny,:,l) = g(:,2,:,l);          % Y-max -> Y-min
+        g(:,:,1,l) = g(:,:,nz-1,l);        % Z-min -> Z-max
+        g(:,:,nz,l) = g(:,:,2,l);          % Z-max -> Z-min
+    end
+
 
     if(mod(t,stamp) == 0)      
         if slicebool == 1
