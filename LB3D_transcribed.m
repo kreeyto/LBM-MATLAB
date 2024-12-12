@@ -7,13 +7,9 @@ clc; clearvars; close all
 % phase field velocity set
 pfvs = "D3Q15";
 
-<<<<<<< HEAD
 % vis mode  
 slicebool = 1;
-=======
-% vis mode
-slicebool = 0;
->>>>>>> 0fcee20ba5cec9e397f5430dd4b678e1d8f10494
+
 vid = 0;
 fr = 15;
 
