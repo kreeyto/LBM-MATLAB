@@ -157,7 +157,7 @@ for tt=1:nsteps
                 for kk=1:9
                     udotc=(u(ii,jj)*ex(kk) + v(ii,jj)*ey(kk))/cssq;
                     
-                    HeF=(p(kk)*(rho(ii,jj) + rho(ii,jj).*(udotc + 0.5.*udotc.^2 - uu))).*((ex(kk)-u(ii,jj)).*ffx(ii,jj) + (ey(kk)-v(ii,jj)).*ffy(ii,jj))./(rho(ii,jj).*cssq);
+                    HeF=(p(kk)*(rho(ii,jj) + rho(ii,jj).*(udotc + 0.5.*udotc.^2 - uu))).*((ex(kk)-u(ii,jj)).*ffx(ii,jj) + (ey(kk)-v(ii,jj)).*ffy(ii,jj) )./(rho(ii,jj).*cssq);
                     
                     feq=p(kk)*(rho(ii,jj) + rho(ii,jj).*(udotc + 0.5.*udotc.^2 - uu)) - 0.5.*(HeF);
                     fneq(kk)=f(ii,jj,kk)- feq;

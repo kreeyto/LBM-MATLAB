@@ -6,9 +6,9 @@ clc; clearvars; close all
 % phase field velocity set
 pfvs = "D3Q15";
 
-% vis mode
+% vis mode  
 slicebool = 1;
-vid = 1;
+vid = 0;
 fr = 15;
 
 radius = 20;
@@ -49,7 +49,7 @@ g = zeros(nx,ny,nz,gpoints);
 w = zeros(1,fpoints);
 w_g = zeros(1,gpoints);
 
-fneq = zeros(fpoints,1,1); 
+fneq = zeros(fpoints,1); 
 
 isfluid(2:nx-1,2:ny-1,2:nz-1) = 1;
 rho(:,:,:) = 1;
