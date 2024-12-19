@@ -10,14 +10,18 @@ pfvs = "D3Q15";
 % vis mode  
 slicebool = 1;
 
+%=============
+bool_ind = 1;
+%=============
+
 vid = 1;
 
 radius = 20;
-res = 1;
+res = 0.2;
 
 nonzero = 1e-9; % 10^-9
 
-tau = 1;
+tau = 0.505;
 cssq = 1/3;
 omega = 1/tau;
 sharp_c = 0.15*3;
@@ -26,11 +30,6 @@ stamp = 1;
 
 [nx, ny, nz] = deal(150*res);
 nsteps = 10000; 
-
-%=============
-bool_ind = 1;
-boolfun = bool_ind .* ones(nx,ny,nz);
-%=============
 
 if res ~= 1
     fr = 15;
@@ -122,10 +121,7 @@ end
 %% video
 
 if vid == 1
-    currentFile = mfilename('fullpath');
-    [currentDir, ~, ~] = fileparts(currentFile);
-    videoPath = fullfile(currentDir, 'LBM3D.avi'); 
-    obj = VideoWriter(videoPath);
+    obj = VideoWriter('LBM3D');
     obj.FrameRate = fr; 
     open(obj);
 end
@@ -180,9 +176,9 @@ for t = 1:nsteps
                          ciz(l) .* normz(i+cix(l),j+ciy(l),k+ciz(l)) ...
                         );
                     end
-                    ffx(i,j,k) = sigma .* curvature(i,j,k) .* normx(i,j,k) .* indicator(i,j,k) .* boolfun(i,j,k);
-                    ffy(i,j,k) = sigma .* curvature(i,j,k) .* normy(i,j,k) .* indicator(i,j,k) .* boolfun(i,j,k);
-                    ffz(i,j,k) = sigma .* curvature(i,j,k) .* normz(i,j,k) .* indicator(i,j,k) .* boolfun(i,j,k);
+                    ffx(i,j,k) = sigma .* curvature(i,j,k) .* normx(i,j,k) .* indicator(i,j,k) * bool_ind;
+                    ffy(i,j,k) = sigma .* curvature(i,j,k) .* normy(i,j,k) .* indicator(i,j,k) * bool_ind;
+                    ffz(i,j,k) = sigma .* curvature(i,j,k) .* normz(i,j,k) .* indicator(i,j,k) * bool_ind;
                 end
             end
         end
@@ -193,17 +189,20 @@ for t = 1:nsteps
         for j = 1:ny
             for k = 1:nz
                 if isfluid(i,j,k) == 1
-                    rho(i,j,k) = sum(f(i,j,k,:),4);
+                    % originalmente, o denominador de \sum_i f_i\e_{ix} é
+                    % ./ rho(i,j,k) + ffx(i,j,k) * 0.5 ./ rho(i,j,k);
                     ux(i,j,k) = ( ...
-                        f(i,j,k,2) - f(i,j,k,3) + f(i,j,k,8) - f(i,j,k,9) + f(i,j,k,10) - f(i,j,k,11) + f(i,j,k,14) - f(i,j,k,15) + f(i,j,k,16) - f(i,j,k,17) ...
+                        2 - 3 + 8 - 9 + 10 - 11 + 14 - 15 + 16 - 17 ...
                     ) ./ rho(i,j,k) + ffx(i,j,k) * 0.5 ./ rho(i,j,k);
                     uy(i,j,k) = ( ...
-                        f(i,j,k,4) - f(i,j,k,5) + f(i,j,k,8) - f(i,j,k,9) + f(i,j,k,12) - f(i,j,k,13) - f(i,j,k,14) + f(i,j,k,15) + f(i,j,k,18) - f(i,j,k,19) ...
+                        4 - 5 + 8 - 9 + 12 - 13 - 14 + 15 + 18 - 19 ...
                     ) ./ rho(i,j,k) + ffy(i,j,k) * 0.5 ./ rho(i,j,k);
                     uz(i,j,k) = ( ...
-                        f(i,j,k,6) - f(i,j,k,7) + f(i,j,k,10) - f(i,j,k,11) + f(i,j,k,12) - f(i,j,k,13) - f(i,j,k,16) + f(i,j,k,17) - f(i,j,k,18) + f(i,j,k,19) ...
+                        (f(i,j,k,6) + f(i,j,k,10) + f(i,j,k,12) + f(i,j,k,17) + f(i,j,k,19)) - ...
+                        (f(i,j,k,7) + f(i,j,k,11) + f(i,j,k,13) + f(i,j,k,16) + f(i,j,k,18)) ...
                     ) ./ rho(i,j,k) + ffz(i,j,k) * 0.5 ./ rho(i,j,k);
                     uu = 0.5 * (ux(i,j,k).^2 + uy(i,j,k).^2 + uz(i,j,k).^2) / cssq;
+                    rho(i,j,k) = sum(f(i,j,k,:),4);
                     for l = 1:fpoints
                         udotc = (ux(i,j,k) * cix(l) + uy(i,j,k) * ciy(l) + uz(i,j,k) * ciz(l)) / cssq;
                         HeF = bool_ind * (w(l) * (rho(i,j,k) + rho(i,j,k) .* (udotc + 0.5.*udotc.^2 - uu))) ...
@@ -253,7 +252,7 @@ for t = 1:nsteps
                         Hi = sharp_c .* phi(i,j,k) .* (1 - phi(i,j,k)) .* ...
                             (cix(l) .* normx(i,j,k) + ...
                              ciy(l) .* normy(i,j,k) + ...
-                             ciz(l) .* normz(i,j,k)) .* boolfun(i,j,k); 
+                             ciz(l) .* normz(i,j,k)) * bool_ind; 
                         g(i,j,k,l) = feq + w_g(l) .* Hi;
                     end
                 end
