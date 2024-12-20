@@ -2,6 +2,7 @@
 1. remove x flattening;
 2. record sim with full res;
 3. zero external forces;
+4. test diff phase field velocity sets;
 %}
 
 % D3Q19 
