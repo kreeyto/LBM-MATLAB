@@ -1,6 +1,7 @@
 %{ TO DO:
 1. remove x flattening;
 2. record sim with full res;
+3. zero external forces;
 %}
 
 % D3Q19 
