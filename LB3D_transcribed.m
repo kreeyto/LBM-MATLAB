@@ -1,3 +1,8 @@
+%{ TO DO:
+1. remove x flattening;
+2. record sim with full res;
+%}
+
 % D3Q19 
 clc; clearvars; close all
 
