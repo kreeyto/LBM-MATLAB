@@ -1,6 +1,5 @@
 % D3Q19 
 clc; clearvars; close all
-%figure('Position', [100 100 800 800]);
 
 %% parameters
 
@@ -11,20 +10,20 @@ pfvs = "D3Q15";
 slicebool = 1;
 
 vid = 1;
-
-radius = 20;
 res = 1;
 
 nonzero = 1e-9; % 10^-9
 
-tau = 1;
+tau = 0.505;
 cssq = 1/3;
 omega = 1/tau;
 sharp_c = 0.15*3;
 sigma = 0.1;
-stamp = 1;
+stamp = 100;
 
 [nx, ny, nz] = deal(150*res);
+radius = 20*res;
+
 nsteps = 10000; 
 
 %=============
@@ -33,8 +32,8 @@ boolfun = bool_ind .* ones(nx,ny,nz);
 %=============
 
 if res ~= 1
-    fr = 15;
-else
+    fr = 15; 
+else 
     fr = 30;
 end
 
@@ -51,30 +50,27 @@ g = zeros(nx,ny,nz,gpoints);
 
 %% arrays and variables
 
-[rho, ux, uy, uz, ...
+[ux, uy, uz, ...
  phi, normx, normy, normz, ...
  curvature, indicator, ...
  ffx, ffy, ffz, ...
  mod_grad, isfluid] = deal(zeros(nx,ny,nz));
 
-[pxx, pyy, pzz, ...
- pxy, pxz, pyz] = deal(ones(nx,ny,nz));
+[rho, pxx, pyy, pzz, ...
+      pxy, pxz, pyz] = deal(ones(nx,ny,nz));
 
 w = zeros(1,fpoints);
 w_g = zeros(1,gpoints);
 
 fneq = zeros(fpoints,1); 
-
 isfluid(2:nx-1,2:ny-1,2:nz-1) = 1;
-rho(:,:,:) = 1;
 
 %% velocity set properties
 
 w(1) = 1/3;
-w(2:6) = 1/18;
-w(7:19) = 1/36;
+w(2:7) = 1/18;
+w(8:19) = 1/36;
 
-% opp = [1, 3, 2, 5, 4, 7, 6, 9, 8, 11, 10, 13, 12, 15, 14, 17, 16, 19, 18];
 cix = [0, 1, -1, 0, 0, 0, 0, 1, -1, 1, -1, 0, 0, 1, -1, 1, -1, 0, 0];
 ciy = [0, 0, 0, 1, -1, 0, 0, 1, -1, 0, 0, 1, -1, -1, 1, 0, 0, 1, -1];
 ciz = [0, 0, 0, 0, 0, 1, -1, 0, 0, 1, -1, 1, -1, 0, 0, -1, 1, -1, 1];
@@ -96,7 +92,7 @@ for i = 2:nx-1
     for j = 2:ny-1
         for k = 2:nz-1
             Ri = sqrt((i-nx/2)^2/2.^2 + (j-ny/2)^2 + (k-nz/2)^2);
-            phi(i,j,k) = 0.5 + 0.5 * tanh(2*(radius*res-Ri)/(3*res));
+            phi(i,j,k) = 0.5 + 0.5 * tanh(2*(radius-Ri)/(3*res));
         end
     end
 end
@@ -146,7 +142,7 @@ for t = 1:nsteps
         end
     end
 
-    % normal and arrays
+    % normal calculation and arrays
     for i = 1:nx
         for j = 1:ny
             for k = 1:nz
@@ -172,6 +168,7 @@ for t = 1:nsteps
         for j = 1:ny
             for k = 1:nz
                 if isfluid(i,j,k) == 1
+                    % surface tension force
                     curvature(i,j,k) = 0;
                     for l = 1:fpoints
                         curvature(i,j,k) = curvature(i,j,k) - 3 .* w(l) .* ...
@@ -193,7 +190,6 @@ for t = 1:nsteps
         for j = 1:ny
             for k = 1:nz
                 if isfluid(i,j,k) == 1
-                    rho(i,j,k) = sum(f(i,j,k,:),4);
                     ux(i,j,k) = ( ...
                         f(i,j,k,2) - f(i,j,k,3) + f(i,j,k,8) - f(i,j,k,9) + f(i,j,k,10) - f(i,j,k,11) + f(i,j,k,14) - f(i,j,k,15) + f(i,j,k,16) - f(i,j,k,17) ...
                     ) ./ rho(i,j,k) + ffx(i,j,k) * 0.5 ./ rho(i,j,k);
@@ -204,9 +200,10 @@ for t = 1:nsteps
                         f(i,j,k,6) - f(i,j,k,7) + f(i,j,k,10) - f(i,j,k,11) + f(i,j,k,12) - f(i,j,k,13) - f(i,j,k,16) + f(i,j,k,17) - f(i,j,k,18) + f(i,j,k,19) ...
                     ) ./ rho(i,j,k) + ffz(i,j,k) * 0.5 ./ rho(i,j,k);
                     uu = 0.5 * (ux(i,j,k).^2 + uy(i,j,k).^2 + uz(i,j,k).^2) / cssq;
+                    rho(i,j,k) = sum(f(i,j,k,:),4);
                     for l = 1:fpoints
                         udotc = (ux(i,j,k) * cix(l) + uy(i,j,k) * ciy(l) + uz(i,j,k) * ciz(l)) / cssq;
-                        HeF = bool_ind * (w(l) * (rho(i,j,k) + rho(i,j,k) .* (udotc + 0.5.*udotc.^2 - uu))) ...
+                        HeF = (w(l) * (rho(i,j,k) + rho(i,j,k) .* (udotc + 0.5.*udotc.^2 - uu))) ...
                             .* ((cix(l) - ux(i,j,k)) .* ffx(i,j,k) + ...
                                 (ciy(l) - uy(i,j,k)) .* ffy(i,j,k) + ...
                                 (ciz(l) - uz(i,j,k)) .* ffz(i,j,k) ...
@@ -234,7 +231,7 @@ for t = 1:nsteps
                     for l = 1:fpoints
                         udotc = (ux(i,j,k) * cix(l) + uy(i,j,k) * ciy(l) + uz(i,j,k) * ciz(l)) / cssq;
                         feq = w(l) * (rho(i,j,k) + rho(i,j,k) .* (udotc + 0.5.*udotc.^2 - uu));
-                        HeF = bool_ind * 0.5 .* (w(l) * (rho(i,j,k) + rho(i,j,k) .* (udotc + 0.5.*udotc.^2 - uu))) .* ...
+                        HeF = 0.5 .* (w(l) * (rho(i,j,k) + rho(i,j,k) .* (udotc + 0.5.*udotc.^2 - uu))) .* ...
                             ((cix(l) - ux(i,j,k)) .* ffx(i,j,k) + ...
                              (ciy(l) - uy(i,j,k)) .* ffy(i,j,k) + ...
                              (ciz(l) - uz(i,j,k)) .* ffz(i,j,k) ...
@@ -284,20 +281,19 @@ for t = 1:nsteps
             end
         end
     end
-
-    phi(1,:,:) = phi(2,:,:);   
-    phi(nx,:,:) = phi(nx-1,:,:);
-    phi(:,1,:) = phi(:,2,:); 
-    phi(:,ny,:) = phi(:,ny-1,:);
     phi(:,:,1) = phi(:,:,2);      
     phi(:,:,nz) = phi(:,:,nz-1); 
+    phi(:,1,:) = phi(:,2,:); 
+    phi(:,ny,:) = phi(:,ny-1,:);
+    phi(1,:,:) = phi(2,:,:);   
+    phi(nx,:,:) = phi(nx-1,:,:);
+    % periodic x
 
-    if(mod(t,stamp) == 0)      
+    if mod(t,stamp) == 0      
         if slicebool == 1
             x = 1:nx; y = 1:ny; z = 1:nz;
-            h = slice(x, y, z, phi, nx/2, [], []); 
+            h = slice(x,y,z,phi,nx/2,[],[]); 
             shading interp; colorbar; axis tight; 
-            xlabel('$x$'); ylabel('$y$'); zlabel('$z$'); 
             title(['t = ', num2str(t)]);
         else
             hVol.Data = phi; 
