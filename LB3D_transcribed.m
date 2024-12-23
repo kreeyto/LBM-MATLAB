@@ -1,11 +1,3 @@
-%{ 
-TO DO:
-1. remove x flattening;
-2. record sim with full res;
-3. zero external forces;
-4. test diff phase field velocity sets;
-%}
-
 % D3Q19 
 clc; clearvars; close all
 
@@ -14,32 +6,45 @@ clc; clearvars; close all
 % phase field velocity set
 pfvs = "D3Q15";
 
-% vis mode  
+% vis mode 
 slicebool = 1;
 
-vid = 1;
-res = 1;
-stamp = 100;
+vid = 0;
+res = 0.2;
 
+flatt = 4;
 nonzero = 1e-9; % 10^-9
 
-tau = 0.505;
+if flatt == 1
+    tau = 1;
+else
+    tau = 0.505;
+end
 cssq = 1/3;
 omega = 1/tau;
-sharp_c = 0.15*3;
-sigma = 0.1;
+if res == 1
+    sharp_c = 0.15*3;
+else
+    sharp_c = 0.15*3*1.2;
+end
+if flatt == 1
+    sigma = 0.024;
+else
+    sigma = 0.1;
+end
+stamp = 10;
 
 [nx, ny, nz] = deal(150*res);
 radius = 20*res;
 
-nsteps = 10000; 
+nsteps = 500; 
 
 %=============
 bool_ind = 1;
 boolfun = bool_ind .* ones(nx,ny,nz);
 %=============
 
-fr = 15; 
+fr = 15;
 
 fpoints = 19; 
 if pfvs == "D3Q19"
@@ -95,7 +100,7 @@ end
 for i = 2:nx-1
     for j = 2:ny-1
         for k = 2:nz-1
-            Ri = sqrt((i-nx/2)^2/2.^2 + (j-ny/2)^2 + (k-nz/2)^2);
+            Ri = sqrt((i-nx/2)^2/flatt + (j-ny/2)^2 + (k-nz/2)^2);
             phi(i,j,k) = 0.5 + 0.5 * tanh(2*(radius-Ri)/(3*res));
         end
     end
@@ -114,7 +119,7 @@ end
 %% if volshow
 
 if slicebool ~= 1
-    hVol = volshow(phi, 'RenderingStyle', 'Isosurface');
+    hVol = volshow(phi, 'RenderingStyle', 'VolumeRendering');
     viewer = hVol.Parent;
     hFig = viewer.Parent;
 end
@@ -296,10 +301,14 @@ for t = 1:nsteps
     if mod(t,stamp) == 0      
         if slicebool == 1
             x = 1:nx; y = 1:ny; z = 1:nz;
-            h = slice(x,y,z,phi,nx/2,[],[]); 
-            shading interp; colorbar; axis tight; 
-            title(['t = ', num2str(t)]);
-        else
+            subplot(1,2,1);
+            h1 = slice(x,y,z,phi,nx/2,[],[]); 
+            shading interp; axis equal;
+            subplot(1,2,2);
+            h2 = slice(x,y,z,phi,[],ny/2,[]); 
+            shading interp; axis equal;
+            sgtitle(['t = ', num2str(t)]);
+        else 
             hVol.Data = phi; 
         end
         drawnow;
