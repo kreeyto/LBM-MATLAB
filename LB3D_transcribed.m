@@ -1,4 +1,5 @@
-%{ TO DO:
+%{ 
+TO DO:
 1. remove x flattening;
 2. record sim with full res;
 3. zero external forces;
@@ -18,6 +19,7 @@ slicebool = 1;
 
 vid = 1;
 res = 1;
+stamp = 100;
 
 nonzero = 1e-9; % 10^-9
 
@@ -26,7 +28,6 @@ cssq = 1/3;
 omega = 1/tau;
 sharp_c = 0.15*3;
 sigma = 0.1;
-stamp = 100;
 
 [nx, ny, nz] = deal(150*res);
 radius = 20*res;
@@ -38,11 +39,7 @@ bool_ind = 1;
 boolfun = bool_ind .* ones(nx,ny,nz);
 %=============
 
-if res ~= 1
-    fr = 15; 
-else 
-    fr = 30;
-end
+fr = 15; 
 
 fpoints = 19; 
 if pfvs == "D3Q19"
