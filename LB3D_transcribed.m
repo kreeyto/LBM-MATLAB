@@ -12,7 +12,7 @@ slicebool = 1;
 vid = 0;
 res = 0.2;
 
-flatt = 4;
+flatt = 1;
 nonzero = 1e-9; % 10^-9
 
 if flatt == 1
@@ -68,8 +68,8 @@ g = zeros(nx,ny,nz,gpoints);
 [rho, pxx, pyy, pzz, ...
       pxy, pxz, pyz] = deal(ones(nx,ny,nz));
 
-w = zeros(1,fpoints);
-w_g = zeros(1,gpoints);
+%w = zeros(1,fpoints);
+%w_g = zeros(1,gpoints);
 
 fneq = zeros(fpoints,1); 
 isfluid(2:nx-1,2:ny-1,2:nz-1) = 1;
