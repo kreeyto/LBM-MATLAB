@@ -11,15 +11,9 @@ slicebool = 1;
 
 vid = 0;
 res = 0.2;
-
-flatt = 1;
 nonzero = 1e-9; % 10^-9
 
-if flatt == 1
-    tau = 1;
-else
-    tau = 0.505;
-end
+tau = 0.505;
 cssq = 1/3;
 omega = 1/tau;
 if res == 1
@@ -27,22 +21,13 @@ if res == 1
 else
     sharp_c = 0.15*3*1.2;
 end
-if flatt == 1
-    sigma = 0.024;
-else
-    sigma = 0.1;
-end
+sigma = 0.1;
 stamp = 10;
 
 [nx, ny, nz] = deal(150*res);
 radius = 20*res;
 
 nsteps = 500; 
-
-%=============
-bool_ind = 1;
-boolfun = bool_ind .* ones(nx,ny,nz);
-%=============
 
 fr = 15;
 
@@ -67,9 +52,6 @@ g = zeros(nx,ny,nz,gpoints);
 
 [rho, pxx, pyy, pzz, ...
       pxy, pxz, pyz] = deal(ones(nx,ny,nz));
-
-%w = zeros(1,fpoints);
-%w_g = zeros(1,gpoints);
 
 fneq = zeros(fpoints,1); 
 isfluid(2:nx-1,2:ny-1,2:nz-1) = 1;
@@ -100,7 +82,7 @@ end
 for i = 2:nx-1
     for j = 2:ny-1
         for k = 2:nz-1
-            Ri = sqrt((i-nx/2)^2/flatt + (j-ny/2)^2 + (k-nz/2)^2);
+            Ri = sqrt((i-nx/2)^2/4 + (j-ny/2)^2 + (k-nz/2)^2);
             phi(i,j,k) = 0.5 + 0.5 * tanh(2*(radius-Ri)/(3*res));
         end
     end
@@ -186,9 +168,9 @@ for t = 1:nsteps
                          ciz(l) .* normz(i+cix(l),j+ciy(l),k+ciz(l)) ...
                         );
                     end
-                    ffx(i,j,k) = sigma .* curvature(i,j,k) .* normx(i,j,k) .* indicator(i,j,k) .* boolfun(i,j,k);
-                    ffy(i,j,k) = sigma .* curvature(i,j,k) .* normy(i,j,k) .* indicator(i,j,k) .* boolfun(i,j,k);
-                    ffz(i,j,k) = sigma .* curvature(i,j,k) .* normz(i,j,k) .* indicator(i,j,k) .* boolfun(i,j,k);
+                    ffx(i,j,k) = sigma .* curvature(i,j,k) .* normx(i,j,k) .* indicator(i,j,k);
+                    ffy(i,j,k) = sigma .* curvature(i,j,k) .* normy(i,j,k) .* indicator(i,j,k);
+                    ffz(i,j,k) = sigma .* curvature(i,j,k) .* normz(i,j,k) .* indicator(i,j,k);
                 end
             end
         end
@@ -259,7 +241,7 @@ for t = 1:nsteps
                         Hi = sharp_c .* phi(i,j,k) .* (1 - phi(i,j,k)) .* ...
                             (cix(l) .* normx(i,j,k) + ...
                              ciy(l) .* normy(i,j,k) + ...
-                             ciz(l) .* normz(i,j,k)) .* boolfun(i,j,k); 
+                             ciz(l) .* normz(i,j,k)); 
                         g(i,j,k,l) = feq + w_g(l) .* Hi;
                     end
                 end
@@ -301,13 +283,9 @@ for t = 1:nsteps
     if mod(t,stamp) == 0      
         if slicebool == 1
             x = 1:nx; y = 1:ny; z = 1:nz;
-            subplot(1,2,1);
             h1 = slice(x,y,z,phi,nx/2,[],[]); 
-            shading interp; axis equal;
-            subplot(1,2,2);
-            h2 = slice(x,y,z,phi,[],ny/2,[]); 
-            shading interp; axis equal;
-            sgtitle(['t = ', num2str(t)]);
+            shading interp; axis tight;
+            title(['t = ', num2str(t)]);
         else 
             hVol.Data = phi; 
         end
