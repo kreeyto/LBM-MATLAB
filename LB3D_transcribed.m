@@ -88,6 +88,8 @@ for i = 2:nx-1
     end
 end
 
+maxabs(phi)
+
 %% distribution function init
 
 for i = 1:fpoints
@@ -306,6 +308,10 @@ end
 
 if vid == 1
     close(obj);
+end
+
+function y = maxabs(a)
+    y = max(abs(a(:)));
 end
 
 
