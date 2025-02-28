@@ -16,13 +16,11 @@ fr = 15;
 res = 0.2;
 nonzero = 1e-9; % 10^-9
 
-% 1 for stationary
-% 0.505 for oscillating 
-tau = 1; % relaxation time
+tau = 0.505; % relaxation time
 
 cssq = 1/3;
 omega = 1/tau;
-sharp_c = 0.15*3;
+sharp_c = 0.15*3 * 1.2;
 sigma = 0.1;
 
 stamp = 10;
@@ -30,9 +28,7 @@ stamp = 10;
 [nx, ny, nz] = deal(150*res);
 radius = 20*res;
 
-% 1 for sphere
-% 4 for ellipsoid
-farg = 1; % flattening term
+farg = 4; % flattening term
 
 nsteps = 500; 
 

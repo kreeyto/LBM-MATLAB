@@ -1,5 +1,5 @@
 %% lattice boltzmann multicompoent single distribution
-clear all
+clc; clearvars; close all
 %% thread-safe LB
 
 nlinks=9;
@@ -57,22 +57,25 @@ isfluid(2:nx-1,2:ny-1)=1;
 
 %rhocoarse(nx/2-2:nx/2+2,ny/2-2:ny/2+2)=0;
 rho(:,:)=1;
-% for ii=1:nx
-%     for jj=1:ny
-%         if(ii<(nx/2))
-%             fi(ii,jj)=1;
-%         else
-%             fi(ii,jj)=0;
-%         end
-%     end
-% end
-% for ii=2:(nx-1)
-%     for jj=2:ny-1
-%         if((ii-(nx/2))^2+(jj-(ny/2))^2<=30^2)
-%             fi(ii,jj)=1;
-%         end
-%     end
-% end
+%{
+for ii=1:nx
+    for jj=1:ny
+        if(ii<(nx/2))
+            fi(ii,jj)=1;
+        else
+            fi(ii,jj)=0;
+        end
+    end
+end
+for ii=2:(nx-1)
+    for jj=2:ny-1
+        if((ii-(nx/2))^2+(jj-(ny/2))^2<=30^2)
+            fi(ii,jj)=1;
+        end
+    end
+end
+%}
+
 for ii=2:(nx-1)
     for jj=2:ny-1
         
