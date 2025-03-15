@@ -5,21 +5,22 @@ res = 1;
 nx = 128*res;
 ny = 64*res;
 
-Re = 5000;  
+%Re = 5000;  
 We = 1000;
 
-L = nx;     
 u_in = 0.09; 
+diam = 10;     
 
-nu = u_in * L / Re; 
-tau = (nu / (1/3)) + 0.5;
+%nu = u_in * L / Re; 
+%tau = (nu / (1/3)) + 0.5;
+tau = 0.505;
 omega = 1 / tau; 
 cssq = 1/3;
 sharp_c = 0.15*3;  
-sigma = (1 * u_in^2 * L) / We;
+sigma = u_in * u_in * (diam+diam) / We;
 
 nsteps = 10000;
-stamp  = 100;     
+stamp = 100;     
 
 fpoints = 9;
 gpoints = 9;
@@ -27,8 +28,8 @@ gpoints = 9;
 f = zeros(nx,ny,fpoints);
 g = zeros(nx,ny,gpoints);
 
-[ux, uy, phi, normx, normy, mod_grad] = deal(zeros(nx,ny));
-[pxx, pyy, pxy, rho]                  = deal(ones(nx,ny));
+[ux, uy, phi, normx, normy, mod_grad, curvature, ffx, ffy] = deal(zeros(nx,ny));
+[pxx, pyy, pxy, rho]                                       = deal(ones(nx,ny));
 
 fneq = zeros(fpoints,1);
 
@@ -44,7 +45,6 @@ phi(:,:) = 0;
 
 nozzle_center = floor(ny/2);
 nozzle_half = 5;
-u_in = 0.09; 
 
 for j = (nozzle_center-nozzle_half):(nozzle_center+nozzle_half)
     phi(1,j) = 1.0;  
@@ -76,16 +76,30 @@ for t = 1:nsteps
 
     for i = 2:nx-1
         for j = 2:ny-1
+            curvature(i,j) = 0;
+            for k = 1:fpoints
+                curvature(i,j) = curvature(i,j) - 3 .* w(k) .* (cix(k) .* (normx(i+cix(k),j+ciy(k))) + ...
+                                                                ciy(k) .* (normy(i+cix(k),j+ciy(k))));
+            end 
+            ffx(i,j) = sigma .* curvature(i,j) .* normx(i,j) .* mod_grad(i,j);
+            ffy(i,j) = sigma .* curvature(i,j) .* normy(i,j) .* mod_grad(i,j);
+        end
+    end
+
+    for i = 2:nx-1
+        for j = 2:ny-1
 
             rho(i,j) = sum(f(i,j,:),3);
 
-            ux(i,j) = (f(i,j,2) - f(i,j,4) + f(i,j,6) - f(i,j,7) - f(i,j,8) + f(i,j,9)) ./ rho(i,j);
-            uy(i,j) = (f(i,j,3) - f(i,j,5) + f(i,j,6) + f(i,j,7) - f(i,j,8) - f(i,j,9)) ./ rho(i,j);
+            ux(i,j) = (f(i,j,2) - f(i,j,4) + f(i,j,6) - f(i,j,7) - f(i,j,8) + f(i,j,9)) ./ rho(i,j) + ffx(i,j) * 0.5 ./ rho(i,j);
+            uy(i,j) = (f(i,j,3) - f(i,j,5) + f(i,j,6) + f(i,j,7) - f(i,j,8) - f(i,j,9)) ./ rho(i,j) + ffy(i,j) * 0.5 ./ rho(i,j);
 
             uu = 0.5 * (ux(i,j)^2 + uy(i,j)^2) / cssq;
             for k = 1:fpoints
                 udotc = (ux(i,j) * cix(k) + uy(i,j) * ciy(k)) / cssq;
-                feq = w(k) * (rho(i,j) + rho(i,j) * (udotc + 0.5*udotc^2 - uu));
+                HeF = (w(k) * (rho(i,j) + rho(i,j) .* (udotc + 0.5.*udotc.^2 - uu))) .* ...
+                              ((cix(k) - ux(i,j)) .* ffx(i,j) + (ciy(k) - uy(i,j)) .* ffy(i,j)) ./ (rho(i,j) .* cssq);
+                feq = w(k) * (rho(i,j) + rho(i,j) * (udotc + 0.5*udotc^2 - uu)) - 0.5 .* HeF;
                 fneq(k) = f(i,j,k) - feq;  
             end
             pxx(i,j) = fneq(2) + fneq(4) + fneq(6) + fneq(7) + fneq(8) + fneq(9);
@@ -100,17 +114,19 @@ for t = 1:nsteps
              for k = 1:fpoints
                  udotc = (ux(i,j) * cix(k) + uy(i,j) * ciy(k)) / cssq;
                  feq = w(k) * (rho(i,j) + rho(i,j) * (udotc + 0.5*udotc^2 - uu));
+                 HeF = 0.5 .* (w(k) * (rho(i,j) + rho(i,j) .* (udotc + 0.5.*udotc.^2 - uu))) .* ...
+                              ((cix(k) - ux(i,j)) .* ffx(i,j) + (ciy(k) - uy(i,j)) .* ffy(i,j)) ./ (rho(i,j) .* cssq);
                  fneqc = (w(k) / (2*cssq^2)) * ((cix(k)^2 - cssq) * pxx(i,j) + ...
                                                 (ciy(k)^2 - cssq) * pyy(i,j) + ...
                                                  2 * cix(k) * ciy(k) * pxy(i,j));
-                 f(i+cix(k),j+ciy(k),k) = feq + (1 - omega) * fneqc;
+                 f(i+cix(k),j+ciy(k),k) = feq + (1 - omega) * fneqc + HeF;
              end
 
              for k = 1:gpoints
                  udotc = (ux(i,j) * cix(k) + uy(i,j) * ciy(k)) / cssq;
-                 feq_g = w_g(k) * phi(i,j) * (1 + udotc);
+                 geq = w_g(k) * phi(i,j) * (1 + udotc);
                  Hi = sharp_c * phi(i,j) * (1 - phi(i,j)) * (cix(k) * normx(i,j) + ciy(k) * normy(i,j));
-                 g(i+cix(k),j+ciy(k),k) = feq_g + w_g(k) * Hi;
+                 g(i+cix(k),j+ciy(k),k) = geq + w_g(k) * Hi; %+ (1-omega_d).*(g(ii,jj,kk)-feq) ;
              end
         end
     end
@@ -118,8 +134,8 @@ for t = 1:nsteps
     for j = (nozzle_center-nozzle_half):(nozzle_center+nozzle_half)
         rho(1,j) = 1.0;     
         phi(1,j) = 1.0;     
-        ux(1,j)  = u_in;     
-        uy(1,j)  = 0.0;
+        ux(1,j) = u_in;
+        uy(1,j) = 0.0;
         
         uu = 0.5 * (u_in^2) / cssq;
         for k = 1:fpoints
@@ -142,6 +158,7 @@ for t = 1:nsteps
     end  
 
     if (mod(t,stamp) == 0)      
+        %quiver(ux', uy');
         imagesc(phi'); 
         axis xy; axis equal; colorbar;
         title(['t = ',num2str(t)]);

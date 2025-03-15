@@ -17,7 +17,7 @@ nsteps = 10000;
 stamp = 10;
 
 fpoints = 9;
-gpoints = 5;
+gpoints = 9;
 
 f = zeros(nx,ny,fpoints);
 g = zeros(nx,ny,gpoints);
@@ -29,7 +29,7 @@ g = zeros(nx,ny,gpoints);
 [pxx, pyy, pxy, rho] = deal(ones(nx,ny));
 
 w = [4/9, 1/9, 1/9, 1/9, 1/9, 1/36, 1/36, 1/36, 1/36];
-w_g = [2/6, 1/6, 1/6, 1/6, 1/6];
+w_g = w;
 
 cix = [0, 1, 0, -1, 0, 1, -1, -1, 1];
 ciy = [0, 0, 1, 0, -1, 1, 1, -1, -1];
@@ -37,11 +37,6 @@ ciy = [0, 0, 1, 0, -1, 1, 1, -1, -1];
 fneq = zeros(9,1);
 ii = 2:nx-1; jj = 2:ny-1;
 
-if j == 0
-    phi = 1;
-else
-    phi = 0;
-end
 
 for l = 1:fpoints
     f(:,:,l) = w(l) * rho(:,:);
