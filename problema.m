@@ -110,7 +110,6 @@ for t = 1:nsteps
         end
     end   
 
-    % Cálculo da vorticidade (curl)
     dudy = (ux(:,[2:end end]) - ux(:,[1 1:end-1])) / (2*dy);
     dvdx = (uy([2:end end],:) - uy([1 1:end-1],:)) / (2*dx);
     vorticity = dvdx - dudy;
