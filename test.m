@@ -1,6 +1,6 @@
 clc; clearvars; close all
 
-res = 1;
+res = 0.5;
 
 nx = 128*res;
 ny = 64*res;
@@ -23,7 +23,7 @@ nsteps = 10000;
 stamp = 100;     
 
 fpoints = 9;
-gpoints = 9;
+gpoints = 5;
 
 f = zeros(nx,ny,fpoints);
 g = zeros(nx,ny,gpoints);
@@ -34,17 +34,20 @@ g = zeros(nx,ny,gpoints);
 fneq = zeros(fpoints,1);
 
 w = [4/9, 1/9, 1/9, 1/9, 1/9, 1/36, 1/36, 1/36, 1/36];
-w_g = [4/9, 1/9, 1/9, 1/9, 1/9, 1/36, 1/36, 1/36, 1/36];
+w_g = [2/6, 1/6, 1/6, 1/6, 1/6];
 
 cix = [0, 1, 0, -1, 0,  1, -1, -1,  1];
 ciy = [0, 0, 1,  0, -1, 1,  1, -1, -1];
 
 ii = 2:nx-1; jj = 2:ny-1;
 
+isfluid = zeros(nx,ny);
+isfluid(ii,jj) = 1;
+
 phi(:,:) = 0; 
 
 nozzle_center = floor(ny/2);
-nozzle_half = 5;
+nozzle_half = round(5*res);
 
 for j = (nozzle_center-nozzle_half):(nozzle_center+nozzle_half)
     phi(1,j) = 1.0;  
@@ -131,6 +134,23 @@ for t = 1:nsteps
         end
     end
 
+    for i = 1:nx
+        for j = 1:ny
+            if (isfluid(i,j) == 0)
+                for k = 1:fpoints
+                    if (i+cix(k)>0 && j+ciy(k)>0)
+                        f(i+cix(k),j+ciy(k),k)= rho(i,j) .* w(k);
+                    end
+                end
+                for k = 1:gpoints 
+                    if (i+cix(k)>0 && j+ciy(k)>0)
+                        g(i+cix(k),j+ciy(k),k) = phi(i,j) .* w_g(k);
+                    end
+                end
+            end
+        end
+    end
+
     for j = (nozzle_center-nozzle_half):(nozzle_center+nozzle_half)
         rho(1,j) = 1.0;     
         phi(1,j) = 1.0;     
@@ -149,13 +169,13 @@ for t = 1:nsteps
         for k = 1:gpoints
             udotc = (ux(1,j) * cix(k) + uy(1,j) * ciy(k)) / cssq;
             feq_g = w_g(k) * phi(1,j) * (1 + udotc);
-            Hi = sharp_c * phi(1,j) * (1 - phi(1,j)) * (cix(k) * normx(1,j) + ciy(k) * normy(1,j));
-            g(1,j,k) = feq_g + w_g(k) * Hi;
             if (1+cix(k) > 1 && 1+cix(k) <= nx && j+ciy(k) > 0 && j+ciy(k) <= ny)
-                g(1+cix(k),j+ciy(k),k) = g(1,j,k);
+                g(1+cix(k),j+ciy(k),k) = feq_g;
             end
         end
     end  
+
+    phi(nx,:)=phi(nx-1,:);
 
     if (mod(t,stamp) == 0)      
         %quiver(ux', uy');

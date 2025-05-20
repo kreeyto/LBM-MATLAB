@@ -17,8 +17,11 @@ one_ov_nu=1.0/visc_LB;
 sharp_c=0.15*3; %*3;%0.12; %D.*1.6; %D./0.6; $sharepning of the interface, antidiffusion term
 sigma=0.1;
 
-nx=150;
-ny=150;
+scaling = 0.25;
+nx = round(150 * scaling);
+ny = round(150 * scaling);
+radius = round(20 * scaling);
+
 nsteps=10000;
 stamp=10;
 
@@ -80,7 +83,7 @@ for ii=2:(nx-1)
     for jj=2:ny-1
         
             Ri=sqrt((ii-(nx/2))^2/2.^2+(jj-(ny/2))^2);
-            fi(ii,jj) = 0.5 + 0.5 * tanh(2*(20-Ri)/3);
+            fi(ii,jj) = 0.5 + 0.5 * tanh(2*(radius-Ri)/3);
     end
 end
 
@@ -98,6 +101,8 @@ g(:,:,2)=p_g(2)*fi(:,:);
 g(:,:,3)=p_g(2)*fi(:,:);
 g(:,:,4)=p_g(2)*fi(:,:);
 g(:,:,5)=p_g(2)*fi(:,:);
+
+gravity = 1e-4;  % valor típico, ajuste conforme necessário
 
 for tt=1:nsteps
     %% phase field calc
@@ -136,8 +141,10 @@ for tt=1:nsteps
                         curvature(ii,jj)=curvature(ii,jj) - 3.*p(kk).*(ex(kk).*(normx(ii+ex(kk),jj+ey(kk))) + ...
                                                                        ey(kk).*(normy(ii+ex(kk),jj+ey(kk))));
                      end 
-                 ffx(ii,jj)=sigma.*curvature(ii,jj).*normx(ii,jj).*indicator(ii,jj) ;%*bool_ind(ii,jj);
-                 ffy(ii,jj)=sigma.*curvature(ii,jj).*normy(ii,jj).*indicator(ii,jj) ;%*bool_ind(ii,jj);
+                     ffx(ii,jj)=sigma.*curvature(ii,jj).*normx(ii,jj).*indicator(ii,jj);
+                     % Tensão superficial + empuxo
+                     ffy(ii,jj)=sigma.*curvature(ii,jj).*normy(ii,jj).*indicator(ii,jj) ...
+                               +   gravity * fi(ii,jj) * (1 - fi(ii,jj)); % máximo na interface
             end
         end
     end
@@ -203,6 +210,7 @@ for tt=1:nsteps
         g(:,:,kk)=circshift(g(:,:,kk), [ex(kk),ey(kk),0]);
     end
     % bcs
+    
     for ii=1:nx
         for jj=1:ny
             if(isfluid(ii,jj)==0)
@@ -220,10 +228,11 @@ for tt=1:nsteps
             end
         end
     end
-    fi(:,1)=fi(:,2);
-    fi(:,ny)=fi(:,ny-1);
-    fi(1,:)=fi(2,:);
-    fi(nx,:)=fi(nx-1,:);
+    
+    %fi(:,1)=fi(:,2);
+    %fi(:,ny)=fi(:,ny-1);
+    %fi(1,:)=fi(2,:);
+    %fi(nx,:)=fi(nx-1,:);
     %periodic x
 
     if(mod(tt,100)==0)      
