@@ -102,8 +102,6 @@ g(:,:,3)=p_g(2)*fi(:,:);
 g(:,:,4)=p_g(2)*fi(:,:);
 g(:,:,5)=p_g(2)*fi(:,:);
 
-gravity = 1e-4;  % valor típico, ajuste conforme necessário
-
 for tt=1:nsteps
     %% phase field calc
     for ii=1:nx
@@ -142,9 +140,7 @@ for tt=1:nsteps
                                                                        ey(kk).*(normy(ii+ex(kk),jj+ey(kk))));
                      end 
                      ffx(ii,jj)=sigma.*curvature(ii,jj).*normx(ii,jj).*indicator(ii,jj);
-                     % Tensão superficial + empuxo
-                     ffy(ii,jj)=sigma.*curvature(ii,jj).*normy(ii,jj).*indicator(ii,jj) ...
-                               +   gravity * fi(ii,jj) * (1 - fi(ii,jj)); % máximo na interface
+                     ffy(ii,jj)=sigma.*curvature(ii,jj).*normy(ii,jj).*indicator(ii,jj); 
             end
         end
     end

@@ -2,22 +2,20 @@ clc; clearvars; close all
 
 res = 0.5;
 
-nx = 128*res;
+nx = 256*res;
 ny = 64*res;
+diam = ny/10;  
 
-%Re = 5000;  
-We = 1000;
+u_in = 0.05; 
+Re = 5000;  
+We = 500;
 
-u_in = 0.09; 
-diam = 10;     
-
-%nu = u_in * L / Re; 
-%tau = (nu / (1/3)) + 0.5;
-tau = 0.505;
+visc = (u_in * diam) / Re;
+tau = 0.5 + 3 * visc;
 omega = 1 / tau; 
 cssq = 1/3;
-sharp_c = 0.15*3;  
-sigma = u_in * u_in * (diam+diam) / We;
+sharp_c = 0.15*7;  
+sigma = (u_in * u_in * diam) / We;
 
 nsteps = 10000;
 stamp = 100;     
@@ -28,7 +26,7 @@ gpoints = 5;
 f = zeros(nx,ny,fpoints);
 g = zeros(nx,ny,gpoints);
 
-[ux, uy, phi, normx, normy, mod_grad, curvature, ffx, ffy] = deal(zeros(nx,ny));
+[ux, uy, phi, normx, normy, mod_grad, ffx, ffy] = deal(zeros(nx,ny));
 [pxx, pyy, pxy, rho]                                       = deal(ones(nx,ny));
 
 fneq = zeros(fpoints,1);
@@ -47,11 +45,7 @@ isfluid(ii,jj) = 1;
 phi(:,:) = 0; 
 
 nozzle_center = floor(ny/2);
-nozzle_half = round(5*res);
-
-for j = (nozzle_center-nozzle_half):(nozzle_center+nozzle_half)
-    phi(1,j) = 1.0;  
-end
+nozzle_half = round(diam*res);
 
 for l = 1:fpoints
     f(:,:,l) = w(l) .* rho(:,:);
@@ -61,13 +55,37 @@ for l = 1:gpoints
 end
 
 for t = 1:nsteps
+
+    for j = (nozzle_center-nozzle_half):(nozzle_center+nozzle_half)
+        rho(1,j) = 1.0;     
+        phi(1,j) = 1.0;     
+        ux(1,j) = u_in;
+        uy(1,j) = 0.0;
+        
+        uu = 0.5 * (u_in^2) / cssq;
+        for k = 1:fpoints
+            udotc = (ux(1,j) * cix(k) + uy(1,j) * ciy(k)) / cssq;
+            feq = w(k) * (rho(1,j) + rho(1,j) * (udotc + 0.5*udotc^2 - uu));
+            if (1+cix(k) > 1 && 1+cix(k) <= nx && j+ciy(k) > 0 && j+ciy(k) <= ny)
+                f(1+cix(k),j+ciy(k),k) = feq;
+            end
+        end
+        
+        for k = 1:gpoints
+            udotc = (ux(1,j) * cix(k) + uy(1,j) * ciy(k)) / cssq;
+            feq_g = w_g(k) * phi(1,j) * (1 + udotc);
+            if (1+cix(k) > 1 && 1+cix(k) <= nx && j+ciy(k) > 0 && j+ciy(k) <= ny)
+                g(1+cix(k),j+ciy(k),k) = feq_g;
+            end
+        end
+    end  
     
     phi(ii,jj) = sum(g(ii,jj,:),3);
     
     for i = 2:nx-1
         for j = 2:ny-1
             grad_fix = 0; grad_fiy = 0; 
-            for k = 1:fpoints
+            for k = 1:gpoints
                 grad_fix = grad_fix + 3 * w(k) * cix(k) * phi(i+cix(k),j+ciy(k));
                 grad_fiy = grad_fiy + 3 * w(k) * ciy(k) * phi(i+cix(k),j+ciy(k));
             end
@@ -79,13 +97,13 @@ for t = 1:nsteps
 
     for i = 2:nx-1
         for j = 2:ny-1
-            curvature(i,j) = 0;
-            for k = 1:fpoints
-                curvature(i,j) = curvature(i,j) - 3 .* w(k) .* (cix(k) .* (normx(i+cix(k),j+ciy(k))) + ...
-                                                                ciy(k) .* (normy(i+cix(k),j+ciy(k))));
+            curvature = 0;
+            for k = 1:gpoints
+                curvature = curvature - 3 .* w(k) .* (cix(k) .* (normx(i+cix(k),j+ciy(k))) + ...
+                                                      ciy(k) .* (normy(i+cix(k),j+ciy(k))));
             end 
-            ffx(i,j) = sigma .* curvature(i,j) .* normx(i,j) .* mod_grad(i,j);
-            ffy(i,j) = sigma .* curvature(i,j) .* normy(i,j) .* mod_grad(i,j);
+            ffx(i,j) = sigma .* curvature .* normx(i,j) .* mod_grad(i,j);
+            ffy(i,j) = sigma .* curvature .* normy(i,j) .* mod_grad(i,j);
         end
     end
 
@@ -139,7 +157,7 @@ for t = 1:nsteps
             if (isfluid(i,j) == 0)
                 for k = 1:fpoints
                     if (i+cix(k)>0 && j+ciy(k)>0)
-                        f(i+cix(k),j+ciy(k),k)= rho(i,j) .* w(k);
+                        f(i+cix(k),j+ciy(k),k) = rho(i,j) .* w(k);
                     end
                 end
                 for k = 1:gpoints 
@@ -150,35 +168,11 @@ for t = 1:nsteps
             end
         end
     end
-
-    for j = (nozzle_center-nozzle_half):(nozzle_center+nozzle_half)
-        rho(1,j) = 1.0;     
-        phi(1,j) = 1.0;     
-        ux(1,j) = u_in;
-        uy(1,j) = 0.0;
-        
-        uu = 0.5 * (u_in^2) / cssq;
-        for k = 1:fpoints
-            udotc = (ux(1,j) * cix(k) + uy(1,j) * ciy(k)) / cssq;
-            feq = w(k) * (rho(1,j) + rho(1,j) * (udotc + 0.5*udotc^2 - uu));
-            if (1+cix(k) > 1 && 1+cix(k) <= nx && j+ciy(k) > 0 && j+ciy(k) <= ny)
-                f(1+cix(k),j+ciy(k),k) = feq;
-            end
-        end
-        
-        for k = 1:gpoints
-            udotc = (ux(1,j) * cix(k) + uy(1,j) * ciy(k)) / cssq;
-            feq_g = w_g(k) * phi(1,j) * (1 + udotc);
-            if (1+cix(k) > 1 && 1+cix(k) <= nx && j+ciy(k) > 0 && j+ciy(k) <= ny)
-                g(1+cix(k),j+ciy(k),k) = feq_g;
-            end
-        end
-    end  
-
-    phi(nx,:)=phi(nx-1,:);
+    
+    phi(:,1) = phi(:,ny-1); 
+    phi(:,ny) = phi(:,2);
 
     if (mod(t,stamp) == 0)      
-        %quiver(ux', uy');
         imagesc(phi'); 
         axis xy; axis equal; colorbar;
         title(['t = ',num2str(t)]);
