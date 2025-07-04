@@ -10,8 +10,13 @@ u_in = 0.05;
 Re = 5000;  
 We = 500;
 
-visc = (u_in * diam) / Re;
-tau = 0.5 + 3 * visc;
+u_in2 = 0.01;
+Re2 = 1200;
+diam2 = 10;
+
+visc1 = (u_in * diam) / Re;
+visc2 = (u_in2 * diam2) / Re2;
+tau = 0.5 + 3 * visc1;
 omega = 1 / tau; 
 cssq = 1/3;
 sharp_c = 0.15*7;  
@@ -26,8 +31,8 @@ gpoints = 5;
 f = zeros(nx,ny,fpoints);
 g = zeros(nx,ny,gpoints);
 
-[ux, uy, phi, normx, normy, mod_grad, ffx, ffy] = deal(zeros(nx,ny));
-[pxx, pyy, pxy, rho]                                       = deal(ones(nx,ny));
+[ux, uy, phi, normx, normy, mod_grad, ffx, ffy, rho] = deal(zeros(nx,ny));
+[pxx, pyy, pxy]                                      = deal(ones(nx,ny));
 
 fneq = zeros(fpoints,1);
 
@@ -42,7 +47,11 @@ ii = 2:nx-1; jj = 2:ny-1;
 isfluid = zeros(nx,ny);
 isfluid(ii,jj) = 1;
 
-phi(:,:) = 0; 
+rho(:,:) = 1;
+phi(:,:) = 0;
+
+rho1 = 1.0;
+rho2 = 1.0;
 
 nozzle_center = floor(ny/2);
 nozzle_half = round(diam*res);
@@ -57,7 +66,7 @@ end
 for t = 1:nsteps
 
     for j = (nozzle_center-nozzle_half):(nozzle_center+nozzle_half)
-        rho(1,j) = 1.0;     
+        rho(1,j) = rho1;     
         phi(1,j) = 1.0;     
         ux(1,j) = u_in;
         uy(1,j) = 0.0;
@@ -111,6 +120,7 @@ for t = 1:nsteps
         for j = 2:ny-1
 
             rho(i,j) = sum(f(i,j,:),3);
+            %rho(i,j) = phi(i,j) * rho1 + (1 - phi(i,j)) * rho2;
 
             ux(i,j) = (f(i,j,2) - f(i,j,4) + f(i,j,6) - f(i,j,7) - f(i,j,8) + f(i,j,9)) ./ rho(i,j) + ffx(i,j) * 0.5 ./ rho(i,j);
             uy(i,j) = (f(i,j,3) - f(i,j,5) + f(i,j,6) + f(i,j,7) - f(i,j,8) - f(i,j,9)) ./ rho(i,j) + ffy(i,j) * 0.5 ./ rho(i,j);
@@ -132,15 +142,17 @@ for t = 1:nsteps
     for i = 2:nx-1
         for j = 2:ny-1
              uu = 0.5 * (ux(i,j)^2 + uy(i,j)^2) / cssq;
+             visc_loc = phi(i,j) .* visc1 + (1-phi(i,j)) .* visc2;
+             omega = 1 / (visc_loc*3 + 0.5);
              for k = 1:fpoints
                  udotc = (ux(i,j) * cix(k) + uy(i,j) * ciy(k)) / cssq;
                  feq = w(k) * (rho(i,j) + rho(i,j) * (udotc + 0.5*udotc^2 - uu));
                  HeF = 0.5 .* (w(k) * (rho(i,j) + rho(i,j) .* (udotc + 0.5.*udotc.^2 - uu))) .* ...
                               ((cix(k) - ux(i,j)) .* ffx(i,j) + (ciy(k) - uy(i,j)) .* ffy(i,j)) ./ (rho(i,j) .* cssq);
-                 fneqc = (w(k) / (2*cssq^2)) * ((cix(k)^2 - cssq) * pxx(i,j) + ...
+                 fneq_reg = (w(k) / (2*cssq^2)) * ((cix(k)^2 - cssq) * pxx(i,j) + ...
                                                 (ciy(k)^2 - cssq) * pyy(i,j) + ...
                                                  2 * cix(k) * ciy(k) * pxy(i,j));
-                 f(i+cix(k),j+ciy(k),k) = feq + (1 - omega) * fneqc + HeF;
+                 f(i+cix(k),j+ciy(k),k) = feq + (1 - omega) * fneq_reg + HeF;
              end
 
              for k = 1:gpoints
@@ -155,14 +167,23 @@ for t = 1:nsteps
     for i = 1:nx
         for j = 1:ny
             if (isfluid(i,j) == 0)
+                uu = 0.5 * (ux(i,j)^2 + uy(i,j)^2) / cssq;
                 for k = 1:fpoints
-                    if (i+cix(k)>0 && j+ciy(k)>0)
-                        f(i+cix(k),j+ciy(k),k) = rho(i,j) .* w(k);
+                    udotc = (ux(i,j) * cix(k) + uy(i,j) * ciy(k)) / cssq;
+                    feq = w(k) * (rho(i,j) + rho(i,j) * (udotc + 0.5*udotc^2 - uu));
+                    if (i+cix(k) >= 1 && i+cix(k) <= nx && ...
+                        j+ciy(k) >= 1 && j+ciy(k) <= ny)
+                        fneq_reg = (w(k) / (2*cssq^2)) * ((cix(k)^2 - cssq) * pxx(i+cix(k),j+ciy(k)) + ...
+                                                          (ciy(k)^2 - cssq) * pyy(i+cix(k),j+ciy(k)) + ...
+                                                        2 * cix(k) * ciy(k) * pxy(i+cix(k),j+ciy(k)));
+                        f(i,j,k) = feq + (1-omega) * fneq_reg;
                     end
                 end
                 for k = 1:gpoints 
+                    udotc = (ux(i,j) * cix(k) + uy(i,j) * ciy(k)) / cssq;
+                    geq = w_g(k) * phi(i,j) * (1 + udotc);
                     if (i+cix(k)>0 && j+ciy(k)>0)
-                        g(i+cix(k),j+ciy(k),k) = phi(i,j) .* w_g(k);
+                        g(i+cix(k),j+ciy(k),k) = geq;
                     end
                 end
             end
@@ -171,9 +192,10 @@ for t = 1:nsteps
     
     phi(:,1) = phi(:,ny-1); 
     phi(:,ny) = phi(:,2);
+    phi(nx,:) = phi(nx-1,:);
 
     if (mod(t,stamp) == 0)      
-        imagesc(phi'); 
+        imagesc(phi); 
         axis xy; axis equal; colorbar;
         title(['t = ',num2str(t)]);
         pause(0.01);
