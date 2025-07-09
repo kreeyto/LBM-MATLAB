@@ -38,34 +38,34 @@ for k = 1:3
     end
 
     uz_mean = mean(uz_stack,4,'omitnan');
-    uz_mean = uz_mean / U_inflow;
-    %uz_mean(uz_mean < 0) = 0;  
-    uz_planes{k} = squeeze(uz_mean(:,:,xc+1));
+    uz_planes{k} = squeeze(uz_mean(:,:,xc+1)) / U_inflow;
 
     uz_profile = uz_mean(z_target+1,:,xc+1);  
     Uc = max(uz_profile);
 
     r = abs((0:NY-1)-yc);  
-    r_over_z = r(yc+1:NY) / z_target;
-    uz_half = uz_profile(yc+1:NY) / Uc;
+    half = yc+1:NY;
+    r_over_z = r(half) / z_target;
+    uz_half = uz_profile(half) / Uc;
     %valid = uz_half > 0;
 
-    r_profiles{k} = r_over_z; % (valid)
-    uz_profiles{k} = uz_half;
+    r_profiles{k} = r_over_z(uz_half);
+    uz_profiles{k} = uz_half(valid);
 end
 
 %% === três planos (z,y) lado a lado ===
-figure('Name','time-averaged velocity planes')
+figure('Name','time-averaged velocity planes','Position',[100 100 1200 360])
 for k = 1:3
     subplot(1,3,k)
-    imagesc(uz_planes{k},[0 1])
+    imagesc(uz_planes{k})
     set(gca,'YDir','normal')
     colormap(hot)
     axis equal tight
     hold on
-    yline(z_target+1,'w--','LineWidth',2.0)
+    yline(z_target+1, 'w--', 'LineWidth', 2.0)
     axis off
 end
+colorbar('Position',[0.92 0.12 0.015 0.75])
 
 %% === plot sobreposto (self-similarity) ===
 figure('Name','self-similarity','Position',[600 200 500 400]); hold on
@@ -77,14 +77,4 @@ xlabel('$r/z$','Interpreter','latex')
 ylabel('$u_z/U_c$','Interpreter','latex')
 legend('Interpreter','latex','Location','northeast')
 grid on
-
-output_dir = fullfile(pwd,'self_similarity_dat');
-if ~exist(output_dir,'dir')
-    mkdir(output_dir);
-end
-
-for k = 1:3
-    data = [r_profiles{k}(:),uz_profiles{k}(:)];
-    fname = fullfile(output_dir,sprintf('self_similarity_We%d.dat',str2double(regexp(we_labels{k},'\d+','match','once'))));
-    writematrix(data, fname,'Delimiter','tab');
-end
+ylim([0 1.1])
